@@ -2,7 +2,8 @@
   "name": "내 삶 정리함",
   "short_name": "삶 정리함",
   "description": "할 일, 장기 목표, 버킷리스트를 한 곳에서",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f2f2f7",
   "theme_color": "#f2f2f7",
@@ -20,18 +21,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "할 일",
-      "url": "/index.html#todo",
-      "description": "오늘의 할 일 보기"
-    },
-    {
-      "name": "캘린더",
-      "url": "/index.html#cal",
-      "description": "캘린더 보기"
     }
   ]
 }
