@@ -148,18 +148,25 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 
 /* 달성률 */
 .achieve-card{background:var(--card);border-radius:12px;padding:14px 15px;margin-bottom:.9rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
-.achieve-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;}
-.achieve-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.achieve-section{display:flex;flex-direction:column;gap:8px;}
-.achieve-section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;}
-.achieve-rows{display:flex;flex-direction:column;gap:10px;}
-.achieve-row{display:flex;flex-direction:column;gap:4px;}
-.achieve-row-hdr{display:flex;justify-content:space-between;align-items:center;}
-.achieve-row-name{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
-.achieve-pct{font-size:12px;font-weight:700;flex-shrink:0;}
+.achieve-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:0;}
+.ach-tab{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
+.ach-tab.on{background:var(--accent1);border-color:var(--accent1);color:#fff;}
 .achieve-bar-bg{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;}
-.achieve-bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
-.achieve-msg{font-size:10px;color:var(--text3);margin-top:1px;font-style:italic;}
+.achieve-bar-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.achieve-msg{font-size:10px;margin-top:2px;font-style:italic;}
+.sub-achieve{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.sub-achieve-hdr{display:flex;justify-content:space-between;align-items:center;}
+.sub-achieve-name{font-size:12px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;}
+.sub-achieve-pct{font-size:12px;font-weight:700;flex-shrink:0;}
+.lt-achieve-block{background:var(--bg);border-radius:10px;padding:11px 13px;margin-bottom:10px;}
+.lt-achieve-name{font-size:13px;font-weight:700;margin-bottom:8px;}
+.total-achieve{background:var(--teal-bg);border-radius:10px;padding:11px 13px;margin-bottom:4px;}
+.total-achieve-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.total-achieve-label{font-size:12px;font-weight:700;color:var(--teal-d);}
+.total-achieve-pct{font-size:15px;font-weight:700;}
+.total-bar-bg{height:10px;background:rgba(255,255,255,0.6);border-radius:5px;overflow:hidden;}
+.total-bar-fill{height:100%;border-radius:5px;transition:width .5s ease;}
+.total-achieve-msg{font-size:11px;margin-top:5px;font-style:italic;text-align:center;}
 
 /* CALENDAR */
 .cal-wrap{background:var(--card);border-radius:12px;margin-bottom:.9rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
@@ -315,7 +322,19 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
   </div>
 </div>
 
-<!-- 이미지 뷰어 -->
+<!-- 멘트 설정 모달 -->
+<div class="modal-bg" id="msg-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-title">달성 멘트 설정</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">각 달성률 구간에 표시될 멘트를 설정해요</div>
+    <div class="modal-field"><label>30% 달성</label><input type="text" id="msg-30" placeholder="30% 멘트"></div>
+    <div class="modal-field"><label>50% 달성</label><input type="text" id="msg-50" placeholder="50% 멘트"></div>
+    <div class="modal-field"><label>70% 달성</label><input type="text" id="msg-70" placeholder="70% 멘트"></div>
+    <div class="modal-field"><label>100% 달성</label><input type="text" id="msg-100" placeholder="100% 멘트"></div>
+    <button class="abtn accent" onclick="saveMsgs()" style="width:100%;border-radius:10px;padding:10px;margin-top:4px;">저장</button>
+    <button class="modal-close" onclick="document.getElementById('msg-modal').classList.remove('show')">취소</button>
+  </div>
+</div>
 <div class="img-viewer" id="img-viewer" onclick="this.classList.remove('show')">
   <button class="img-viewer-close">×</button>
   <img id="img-viewer-src" src="" alt="">
@@ -389,18 +408,17 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       </div>
     </div>
     <!-- 달성률 -->
-    <div class="achieve-card">
-      <div class="achieve-title">📊 달성률</div>
-      <div class="achieve-cols">
-        <div class="achieve-section">
-          <div class="achieve-section-label">이번 달</div>
-          <div id="achieve-month" class="achieve-rows"></div>
-        </div>
-        <div class="achieve-section">
-          <div class="achieve-section-label">올해</div>
-          <div id="achieve-year" class="achieve-rows"></div>
-        </div>
+    <div class="achieve-card" id="achieve-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="achieve-title" style="margin-bottom:0;">📊 달성률</div>
+        <button class="cat-manage-btn" onclick="openMsgModal()">멘트 설정 ✎</button>
       </div>
+      <!-- 달 탭 -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <button class="ach-tab on" id="ach-month-btn" onclick="setAchPeriod('month',this)">이번 달</button>
+        <button class="ach-tab" id="ach-year-btn" onclick="setAchPeriod('year',this)">올해</button>
+      </div>
+      <div id="achieve-body"></div>
     </div>
     <div id="lt-list"></div>
   </div>
@@ -847,74 +865,151 @@ function renderLt(){
   list.innerHTML=html;
 }
 
-// ── 달성률 계산 (오늘까지만 분모 계산) ──
-function calcAchieve(startStr, endStr){
+// ── 달성률 설정 멘트 ──
+let achMsgs = JSON.parse(localStorage.getItem('lp_msgs') || 'null') || {
+  m30:  '🌱 시작이 좋아요! 계속 해봐요!',
+  m50:  '😊 절반 왔어요! 꾸준히 가봐요!',
+  m70:  '💪 잘 하고 있어요! 조금만 더!',
+  m100: '🎉 완벽해요! 정말 대단해요!'
+};
+function saveAchMsgs(){ localStorage.setItem('lp_msgs', JSON.stringify(achMsgs)); }
+
+let achPeriod = 'month';
+window.setAchPeriod = (p, btn) => {
+  achPeriod = p;
+  document.querySelectorAll('.ach-tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderAchieve();
+};
+
+window.openMsgModal = () => {
+  document.getElementById('msg-30').value  = achMsgs.m30;
+  document.getElementById('msg-50').value  = achMsgs.m50;
+  document.getElementById('msg-70').value  = achMsgs.m70;
+  document.getElementById('msg-100').value = achMsgs.m100;
+  document.getElementById('msg-modal').classList.add('show');
+};
+window.saveMsgs = () => {
+  achMsgs.m30  = document.getElementById('msg-30').value.trim()  || achMsgs.m30;
+  achMsgs.m50  = document.getElementById('msg-50').value.trim()  || achMsgs.m50;
+  achMsgs.m70  = document.getElementById('msg-70').value.trim()  || achMsgs.m70;
+  achMsgs.m100 = document.getElementById('msg-100').value.trim() || achMsgs.m100;
+  saveAchMsgs();
+  document.getElementById('msg-modal').classList.remove('show');
+  renderAchieve();
+};
+
+function getMsgForPct(pct){
+  if(pct >= 100) return { msg: achMsgs.m100, color: '#34c759' };
+  if(pct >= 70)  return { msg: achMsgs.m70,  color: '#007aff' };
+  if(pct >= 50)  return { msg: achMsgs.m50,  color: '#5856d6' };
+  if(pct >= 30)  return { msg: achMsgs.m30,  color: '#ff9500' };
+  return { msg: '', color: '#8e8e93' };
+}
+
+// 기간 내 특정 과제(daily sub) 달성률 계산
+function calcSubAchieve(sub, startStr, endStr){
   const today = new Date();
-  const todayStr2 = window.fmt(today);
-  const results = [];
-  lts.forEach((lt, ci) => {
-    const subs = lt.subs || [];
-    if(!subs.length) return;
-    const color = barColsRaw[ci % barColsRaw.length];
-    const dailySubs = subs.filter(s => s.kind === 'daily');
-    const onceSubs = subs.filter(s => s.kind === 'once');
-    let total = 0, done = 0;
-    // 반복 과제: 시작일~오늘(endStr 이전)까지만 분모
-    if(dailySubs.length){
-      let d = new Date(window.parseDate(startStr));
-      const end = window.parseDate(endStr);
-      const effEnd = end < today ? end : today;
-      while(d <= effEnd){
-        const ds = window.fmt(d);
-        total += dailySubs.length;
-        dailySubs.forEach(sub => { if(checks[ds+'_'+sub.id]) done++; });
-        d.setDate(d.getDate() + 1);
-      }
-    }
-    // 일회성 과제
-    onceSubs.forEach(sub => { total++; if(sub.done) done++; });
-    if(!total) return;
-    const pct = Math.round(done / total * 100);
-    results.push({ lt, pct, color });
-  });
-  return results;
-}
-
-function getAchieveMsg(pct){
-  if(pct === 100) return { msg:'🎉 완벽해요!', color:'#34c759' };
-  if(pct >= 90)  return { msg:'🔥 거의 다 왔어요!', color:'#ff9500' };
-  if(pct >= 70)  return { msg:'💪 잘 하고 있어요!', color:'#007aff' };
-  if(pct >= 50)  return { msg:'😊 절반 넘었어요!', color:'#5856d6' };
-  return { msg:'🌱 오늘부터 다시!', color:'#ff2d55' };
-}
-
-function renderAchieveSection(containerId, startStr, endStr){
-  const wrap = document.getElementById(containerId); if(!wrap) return;
-  const results = calcAchieve(startStr, endStr);
-  if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">목표 없음</div>'; return; }
-  wrap.innerHTML = results.map(({lt, pct, color}) => {
-    const {msg, color:msgColor} = getAchieveMsg(pct);
-    return `<div class="achieve-row">
-      <div class="achieve-row-hdr">
-        <span class="achieve-row-name" style="color:${color}" title="${window.esc(lt.text)}">${window.esc(lt.text.slice(0,8))}${lt.text.length>8?'…':''}</span>
-        <span class="achieve-pct" style="color:${msgColor}">${pct}%</span>
-      </div>
-      <div class="achieve-bar-bg"><div class="achieve-bar-fill" style="width:${pct}%;background:${color};"></div></div>
-      <div class="achieve-msg" style="color:${msgColor}">${msg}</div>
-    </div>`;
-  }).join('');
+  const end   = window.parseDate(endStr);
+  const effEnd = end < today ? end : today;
+  let d = new Date(window.parseDate(startStr));
+  let total = 0, done = 0;
+  while(d <= effEnd){
+    const ds = window.fmt(d);
+    total++;
+    if(checks[ds + '_' + sub.id]) done++;
+    d.setDate(d.getDate() + 1);
+  }
+  return { total, done, pct: total ? Math.round(done/total*100) : 0 };
 }
 
 function renderAchieve(){
   const now = new Date();
-  // 이번 달: 1일 ~ 말일
-  const monthStart = window.fmt(new Date(now.getFullYear(), now.getMonth(), 1));
-  const monthEnd   = window.fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
-  // 올해: 1/1 ~ 12/31
-  const yearStart  = now.getFullYear()+'-01-01';
-  const yearEnd    = now.getFullYear()+'-12-31';
-  renderAchieveSection('achieve-month', monthStart, monthEnd);
-  renderAchieveSection('achieve-year',  yearStart,  yearEnd);
+  let startStr, endStr;
+  if(achPeriod === 'month'){
+    startStr = window.fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+    endStr   = window.fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  } else {
+    startStr = now.getFullYear() + '-01-01';
+    endStr   = now.getFullYear() + '-12-31';
+  }
+
+  const wrap = document.getElementById('achieve-body'); if(!wrap) return;
+  if(!lts.length){ wrap.innerHTML='<div class="empty" style="padding:1rem 0;">장기 목표를 추가해보세요</div>'; return; }
+
+  let allTotal = 0, allDone = 0;
+  let blocksHtml = '';
+
+  lts.forEach((lt, ci) => {
+    const subs = (lt.subs || []).filter(s => s.kind === 'daily');
+    if(!subs.length) return;
+    const ltColor = barColsRaw[ci % barColsRaw.length];
+
+    let ltTotal = 0, ltDone = 0;
+    let subsHtml = '';
+
+    subs.forEach(sub => {
+      const { total, done, pct } = calcSubAchieve(sub, startStr, endStr);
+      ltTotal += total; ltDone += done;
+      allTotal += total; allDone += done;
+      const barColor = pct >= 70 ? ltColor : pct >= 30 ? '#ff9500' : '#ff2d55';
+      subsHtml += `<div class="sub-achieve">
+        <div class="sub-achieve-hdr">
+          <span class="sub-achieve-name" title="${window.esc(sub.text)}">${window.esc(sub.text.length>14?sub.text.slice(0,13)+'…':sub.text)}</span>
+          <span class="sub-achieve-pct" style="color:${barColor}">${pct}%</span>
+        </div>
+        <div class="achieve-bar-bg"><div class="achieve-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+      </div>`;
+    });
+
+    // 일회성 과제도 포함
+    const onceSubs = (lt.subs || []).filter(s => s.kind === 'once');
+    if(onceSubs.length){
+      const oTotal = onceSubs.length;
+      const oDone = onceSubs.filter(s => s.done).length;
+      ltTotal += oTotal; ltDone += oDone;
+      allTotal += oTotal; allDone += oDone;
+      const oPct = Math.round(oDone/oTotal*100);
+      subsHtml += `<div class="sub-achieve">
+        <div class="sub-achieve-hdr">
+          <span class="sub-achieve-name">일회성 과제 (${oTotal}개)</span>
+          <span class="sub-achieve-pct" style="color:var(--sand-d)">${oPct}%</span>
+        </div>
+        <div class="achieve-bar-bg"><div class="achieve-bar-fill" style="width:${oPct}%;background:var(--sand-d);"></div></div>
+      </div>`;
+    }
+
+    const ltPct = ltTotal ? Math.round(ltDone/ltTotal*100) : 0;
+    const {msg: ltMsg, color: ltMsgColor} = getMsgForPct(ltPct);
+
+    blocksHtml += `<div class="lt-achieve-block">
+      <div class="lt-achieve-name" style="color:${ltColor}">
+        ${window.esc(lt.text)}
+        <span style="font-size:13px;font-weight:700;margin-left:6px;color:${ltMsgColor}">${ltPct}%</span>
+      </div>
+      ${subsHtml}
+      <div class="achieve-bar-bg" style="height:9px;"><div class="achieve-bar-fill" style="width:${ltPct}%;background:${ltColor};height:9px;"></div></div>
+      ${ltMsg ? `<div class="achieve-msg" style="color:${ltMsgColor}">${ltMsg}</div>` : ''}
+    </div>`;
+  });
+
+  if(!blocksHtml){ wrap.innerHTML='<div class="empty" style="padding:1rem 0;">매일반복 과제를 추가하면 달성률이 표시돼요</div>'; return; }
+
+  // 총합
+  const totalPct = allTotal ? Math.round(allDone/allTotal*100) : 0;
+  const {msg: totalMsg, color: totalMsgColor} = getMsgForPct(totalPct);
+  const totalBarColor = totalPct >= 70 ? '#34c759' : totalPct >= 50 ? '#007aff' : totalPct >= 30 ? '#ff9500' : '#ff2d55';
+
+  wrap.innerHTML = `
+    <div class="total-achieve">
+      <div class="total-achieve-hdr">
+        <span class="total-achieve-label">전체 종합</span>
+        <span class="total-achieve-pct" style="color:${totalMsgColor}">${totalPct}%</span>
+      </div>
+      <div class="total-bar-bg"><div class="total-bar-fill" style="width:${totalPct}%;background:${totalBarColor};"></div></div>
+      ${totalMsg ? `<div class="total-achieve-msg" style="color:${totalMsgColor}">${totalMsg}</div>` : ''}
+    </div>
+    ${blocksHtml}`;
 }
 
 // ── 캘린더 날짜별 반복 달성률 계산 ──
