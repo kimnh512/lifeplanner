@@ -148,29 +148,18 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 
 /* 달성률 */
 .achieve-card{background:var(--card);border-radius:12px;padding:14px 15px;margin-bottom:.9rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
-.achieve-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;}
-.achieve-tabs{display:flex;gap:6px;margin-bottom:12px;}
-.ach-tab{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
-.ach-tab.on{background:var(--accent1);border-color:var(--accent1);color:#fff;}
+.achieve-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;}
+.achieve-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.achieve-section{display:flex;flex-direction:column;gap:8px;}
+.achieve-section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;}
 .achieve-rows{display:flex;flex-direction:column;gap:10px;}
 .achieve-row{display:flex;flex-direction:column;gap:4px;}
 .achieve-row-hdr{display:flex;justify-content:space-between;align-items:center;}
-.achieve-row-name{font-size:13px;font-weight:600;color:var(--text);}
-.achieve-pct{font-size:13px;font-weight:700;}
-.achieve-bar-bg{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.achieve-row-name{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+.achieve-pct{font-size:12px;font-weight:700;flex-shrink:0;}
+.achieve-bar-bg{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;}
 .achieve-bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
-.achieve-msg{font-size:11px;color:var(--text3);margin-top:2px;font-style:italic;}
-
-/* 간트차트 */
-.gantt-card{background:var(--card);border-radius:12px;padding:14px 15px;margin-bottom:.9rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
-.gantt-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;}
-.gantt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.gantt-table{min-width:500px;border-collapse:collapse;width:100%;}
-.gantt-label{font-size:12px;color:var(--text);font-weight:500;padding:4px 8px 4px 0;white-space:nowrap;min-width:90px;max-width:120px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
-.gantt-cell{padding:3px 1px;position:relative;height:24px;}
-.gantt-head-cell{font-size:9px;color:var(--text3);font-weight:700;text-align:center;padding:3px 1px;white-space:nowrap;}
-.gantt-bar{height:14px;border-radius:7px;position:absolute;top:50%;transform:translateY(-50%);min-width:6px;}
-.gantt-today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--salmon-d);opacity:.7;z-index:2;}
+.achieve-msg{font-size:10px;color:var(--text3);margin-top:1px;font-style:italic;}
 
 /* CALENDAR */
 .cal-wrap{background:var(--card);border-radius:12px;margin-bottom:.9rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
@@ -188,6 +177,12 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .dnum{font-size:11px;font-weight:500;color:var(--text);width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin-bottom:1px;}
 .cal-dots{display:flex;flex-wrap:wrap;gap:1px;padding:0 1px;}
 .cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+/* 달성률 배경 */
+.cal-day.ach-full{background:rgba(52,199,89,0.15);}
+.cal-day.ach-high{background:rgba(52,199,89,0.08);}
+.cal-day.ach-mid{background:rgba(255,149,0,0.08);}
+.cal-day.ach-low{background:rgba(255,45,85,0.07);}
+.cal-ach-bar{height:3px;border-radius:0 0 2px 2px;margin-top:1px;transition:width .3s;}
 
 /* DAILY */
 .daily-panel{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
@@ -396,17 +391,16 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
     <!-- 달성률 -->
     <div class="achieve-card">
       <div class="achieve-title">📊 달성률</div>
-      <div class="achieve-tabs">
-        <button class="ach-tab on" onclick="setAchTab('week',this)">이번 주</button>
-        <button class="ach-tab" onclick="setAchTab('month',this)">이번 달</button>
-        <button class="ach-tab" onclick="setAchTab('year',this)">올해</button>
+      <div class="achieve-cols">
+        <div class="achieve-section">
+          <div class="achieve-section-label">이번 달</div>
+          <div id="achieve-month" class="achieve-rows"></div>
+        </div>
+        <div class="achieve-section">
+          <div class="achieve-section-label">올해</div>
+          <div id="achieve-year" class="achieve-rows"></div>
+        </div>
       </div>
-      <div id="achieve-rows" class="achieve-rows"></div>
-    </div>
-    <!-- 간트차트 -->
-    <div class="gantt-card">
-      <div class="gantt-title">📅 간트차트</div>
-      <div class="gantt-scroll" id="gantt-wrap"></div>
     </div>
     <div id="lt-list"></div>
   </div>
@@ -555,7 +549,7 @@ calYear=now2.getFullYear();calMonth=now2.getMonth();selDate=window.fmt(now2);
 function initData(){
   unsubscribers.forEach(u=>u());unsubscribers=[];
   unsubscribers.push(onSnapshot(col('todos'),snap=>{todos=snap.docs.map(d=>d.data());renderTodos();renderCal();renderDaily();}));
-  unsubscribers.push(onSnapshot(col('lts'),snap=>{lts=snap.docs.map(d=>d.data());renderLt();renderAchieve();renderGantt();renderCal();renderDaily();}));
+  unsubscribers.push(onSnapshot(col('lts'),snap=>{lts=snap.docs.map(d=>d.data());renderLt();renderAchieve();renderCal();renderDaily();}));
   unsubscribers.push(onSnapshot(col('buckets'),snap=>{buckets=snap.docs.map(d=>d.data());renderBuckets();updateTicker();}));
   unsubscribers.push(onSnapshot(col('checks'),snap=>{checks={};snap.docs.forEach(d=>{checks[d.id]=d.data().v;});renderCal();renderDaily();renderLt();renderAchieve();}));
 }
@@ -580,7 +574,7 @@ window.sw=tab=>{
   document.querySelectorAll('.seg-b')[idx[tab]].classList.add('on');
   if(tab==='cal'){renderCal();renderDaily();renderLegend();}
   if(tab==='todo'){setStartToday();}
-  if(tab==='lt'){renderAchieve();renderGantt();}
+  if(tab==='lt'){renderAchieve();}
 };
 
 function setStartToday(){
@@ -853,149 +847,83 @@ function renderLt(){
   list.innerHTML=html;
 }
 
-// ── 달성률 ──
-window.setAchTab=(tab,btn)=>{
-  achTab=tab;
-  document.querySelectorAll('.ach-tab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderAchieve();
-};
-
-function getDateRange(tab){
-  const now=new Date();
-  if(tab==='week'){
-    const d=now.getDay();
-    const mon=new Date(now);mon.setDate(now.getDate()-d+1);
-    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-    return{start:window.fmt(mon),end:window.fmt(sun)};
-  }else if(tab==='month'){
-    const start=new Date(now.getFullYear(),now.getMonth(),1);
-    const end=new Date(now.getFullYear(),now.getMonth()+1,0);
-    return{start:window.fmt(start),end:window.fmt(end)};
-  }else{
-    return{start:now.getFullYear()+'-01-01',end:now.getFullYear()+'-12-31'};
-  }
+// ── 달성률 계산 (오늘까지만 분모 계산) ──
+function calcAchieve(startStr, endStr){
+  const today = new Date();
+  const todayStr2 = window.fmt(today);
+  const results = [];
+  lts.forEach((lt, ci) => {
+    const subs = lt.subs || [];
+    if(!subs.length) return;
+    const color = barColsRaw[ci % barColsRaw.length];
+    const dailySubs = subs.filter(s => s.kind === 'daily');
+    const onceSubs = subs.filter(s => s.kind === 'once');
+    let total = 0, done = 0;
+    // 반복 과제: 시작일~오늘(endStr 이전)까지만 분모
+    if(dailySubs.length){
+      let d = new Date(window.parseDate(startStr));
+      const end = window.parseDate(endStr);
+      const effEnd = end < today ? end : today;
+      while(d <= effEnd){
+        const ds = window.fmt(d);
+        total += dailySubs.length;
+        dailySubs.forEach(sub => { if(checks[ds+'_'+sub.id]) done++; });
+        d.setDate(d.getDate() + 1);
+      }
+    }
+    // 일회성 과제
+    onceSubs.forEach(sub => { total++; if(sub.done) done++; });
+    if(!total) return;
+    const pct = Math.round(done / total * 100);
+    results.push({ lt, pct, color });
+  });
+  return results;
 }
 
 function getAchieveMsg(pct){
-  if(pct===100)return{msg:'🎉 완벽해요! 정말 대단해요!',color:'#34c759'};
-  if(pct>=90)return{msg:'🔥 거의 다 왔어요! 조금만 더!',color:'#ff9500'};
-  if(pct>=70)return{msg:'💪 잘 하고 있어요! 계속 유지해요!',color:'#007aff'};
-  if(pct>=50)return{msg:'😊 절반 넘었어요! 꾸준히 해봐요',color:'#5856d6'};
-  return{msg:'🌱 시작이 반이에요! 오늘부터 다시!',color:'#ff2d55'};
+  if(pct === 100) return { msg:'🎉 완벽해요!', color:'#34c759' };
+  if(pct >= 90)  return { msg:'🔥 거의 다 왔어요!', color:'#ff9500' };
+  if(pct >= 70)  return { msg:'💪 잘 하고 있어요!', color:'#007aff' };
+  if(pct >= 50)  return { msg:'😊 절반 넘었어요!', color:'#5856d6' };
+  return { msg:'🌱 오늘부터 다시!', color:'#ff2d55' };
+}
+
+function renderAchieveSection(containerId, startStr, endStr){
+  const wrap = document.getElementById(containerId); if(!wrap) return;
+  const results = calcAchieve(startStr, endStr);
+  if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">목표 없음</div>'; return; }
+  wrap.innerHTML = results.map(({lt, pct, color}) => {
+    const {msg, color:msgColor} = getAchieveMsg(pct);
+    return `<div class="achieve-row">
+      <div class="achieve-row-hdr">
+        <span class="achieve-row-name" style="color:${color}" title="${window.esc(lt.text)}">${window.esc(lt.text.slice(0,8))}${lt.text.length>8?'…':''}</span>
+        <span class="achieve-pct" style="color:${msgColor}">${pct}%</span>
+      </div>
+      <div class="achieve-bar-bg"><div class="achieve-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="achieve-msg" style="color:${msgColor}">${msg}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderAchieve(){
-  const range=getDateRange(achTab);
-  const wrap=document.getElementById('achieve-rows');if(!wrap)return;
-  if(!lts.length){wrap.innerHTML='<div class="empty" style="padding:1rem 0;">장기 목표를 추가해보세요</div>';return;}
-  let html='';
-  lts.forEach((lt,ci)=>{
-    const subs=lt.subs||[];if(!subs.length)return;
-    const color=barColsRaw[ci%barColsRaw.length];
-    // 일회성: 완료된 것
-    const onceSubs=subs.filter(s=>s.kind==='once');
-    const onceDone=onceSubs.filter(s=>s.done).length;
-    // 반복: 기간 내 날짜 × 매일반복 과제 수
-    const dailySubs=subs.filter(s=>s.kind==='daily');
-    let dailyTotal=0,dailyDone=0;
-    if(dailySubs.length){
-      const start=window.parseDate(range.start),end=window.parseDate(range.end);
-      const today=new Date();const effEnd=end<today?end:today;
-      let d=new Date(start);
-      while(d<=effEnd){
-        const ds=window.fmt(d);
-        dailyTotal+=dailySubs.length;
-        dailySubs.forEach(sub=>{if(checks[ds+'_'+sub.id])dailyDone++;});
-        d.setDate(d.getDate()+1);
-      }
-    }
-    const total=(onceSubs.length)+dailyTotal;
-    const done=onceDone+dailyDone;
-    if(total===0)return;
-    const pct=Math.round(done/total*100);
-    const {msg,color:msgColor}=getAchieveMsg(pct);
-    const barColor=pct>=70?color:'#e0e0e0';
-    html+=`<div class="achieve-row">
-      <div class="achieve-row-hdr">
-        <span class="achieve-row-name" style="color:${color}">${window.esc(lt.text)}</span>
-        <span class="achieve-pct" style="color:${msgColor}">${pct}%</span>
-      </div>
-      <div class="achieve-bar-bg">
-        <div class="achieve-bar-fill" style="width:${pct}%;background:${color};"></div>
-      </div>
-      <div class="achieve-msg" style="color:${msgColor}">${msg}</div>
-    </div>`;
-  });
-  wrap.innerHTML=html||'<div class="empty" style="padding:1rem 0;">달성률을 계산할 과제가 없어요</div>';
+  const now = new Date();
+  // 이번 달: 1일 ~ 말일
+  const monthStart = window.fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+  const monthEnd   = window.fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  // 올해: 1/1 ~ 12/31
+  const yearStart  = now.getFullYear()+'-01-01';
+  const yearEnd    = now.getFullYear()+'-12-31';
+  renderAchieveSection('achieve-month', monthStart, monthEnd);
+  renderAchieveSection('achieve-year',  yearStart,  yearEnd);
 }
 
-// ── 간트차트 ──
-function renderGantt(){
-  const wrap=document.getElementById('gantt-wrap');if(!wrap)return;
-  const dtodos=todos.filter(t=>t.type==='deadline'&&t.start&&t.due);
-  if(!dtodos.length&&!lts.length){wrap.innerHTML='<div class="empty">마감 있는 할 일이나 장기 목표를 추가하면<br>여기에 표시돼요</div>';return;}
-  // 날짜 범위 계산 (오늘 기준 ±30일)
-  const today=new Date();
-  const rangeStart=new Date(today);rangeStart.setDate(today.getDate()-7);
-  const rangeEnd=new Date(today);rangeEnd.setDate(today.getDate()+30);
-  const totalDays=Math.round((rangeEnd-rangeStart)/86400000)+1;
-  const todayOffset=Math.round((today-rangeStart)/86400000);
-
-  // 헤더 날짜
-  const headerDates=[];
-  for(let i=0;i<totalDays;i+=3){
-    const d=new Date(rangeStart);d.setDate(rangeStart.getDate()+i);
-    headerDates.push({offset:i,label:(d.getMonth()+1)+'/'+(d.getDate())});
-  }
-
-  let rows='';
-
-  // 할 일
-  dtodos.forEach(t=>{
-    const cat=catById(t.cat);
-    const s=window.parseDate(t.start),e=window.parseDate(t.due);
-    const sOff=Math.max(0,Math.round((s-rangeStart)/86400000));
-    const eOff=Math.min(totalDays-1,Math.round((e-rangeStart)/86400000));
-    if(eOff<0||sOff>=totalDays)return;
-    const leftPct=(sOff/totalDays*100).toFixed(2);
-    const widthPct=((eOff-sOff+1)/totalDays*100).toFixed(2);
-    rows+=`<tr>
-      <td class="gantt-label" title="${window.esc(t.text)}">${window.esc(t.text.slice(0,10))}</td>
-      <td class="gantt-cell" colspan="${headerDates.length}" style="position:relative;min-width:${totalDays*8}px;">
-        <div class="gantt-today-line" style="left:${(todayOffset/totalDays*100).toFixed(2)}%"></div>
-        <div class="gantt-bar" style="left:${leftPct}%;width:${widthPct}%;background:${cat.color};opacity:${t.done?0.4:1};"></div>
-      </td>
-    </tr>`;
-  });
-
-  // 장기 목표 (기간 기반)
-  lts.forEach((lt,ci)=>{
-    const color=barColsRaw[ci%barColsRaw.length];
-    const periodYears=+lt.period;
-    const ltStart=today;
-    const ltEnd=new Date(today);ltEnd.setFullYear(today.getFullYear()+periodYears);
-    const sOff=Math.max(0,Math.round((ltStart-rangeStart)/86400000));
-    const eOff=Math.min(totalDays-1,Math.round((ltEnd-rangeStart)/86400000));
-    if(eOff<0||sOff>=totalDays)return;
-    const leftPct=(sOff/totalDays*100).toFixed(2);
-    const widthPct=((eOff-sOff+1)/totalDays*100).toFixed(2);
-    rows+=`<tr>
-      <td class="gantt-label" title="${window.esc(lt.text)}">${window.esc(lt.text.slice(0,10))}</td>
-      <td class="gantt-cell" colspan="${headerDates.length}" style="position:relative;min-width:${totalDays*8}px;">
-        <div class="gantt-today-line" style="left:${(todayOffset/totalDays*100).toFixed(2)}%"></div>
-        <div class="gantt-bar" style="left:${leftPct}%;width:${widthPct}%;background:${color};opacity:.7;"></div>
-      </td>
-    </tr>`;
-  });
-
-  wrap.innerHTML=`<table class="gantt-table">
-    <thead><tr>
-      <th style="min-width:90px;"></th>
-      ${headerDates.map(h=>`<th class="gantt-head-cell" style="min-width:24px;">${h.label}</th>`).join('')}
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+// ── 캘린더 날짜별 반복 달성률 계산 ──
+function getDayAchievePct(ds){
+  const daily = getAllDaily();
+  if(!daily.length) return null;
+  const total = daily.length;
+  const done = daily.filter(({sub}) => !!checks[ds+'_'+sub.id]).length;
+  return Math.round(done / total * 100);
 }
 
 // CALENDAR
@@ -1026,7 +954,19 @@ function renderCal(){
   for(let d=1;d<=last.getDate();d++){
     const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const dots=getDotsForDate(ds).slice(0,6);
-    html+=`<div class="cal-day${ds===todayS?' today':''}${ds===selDate?' sel':''}" onclick="selectDay('${ds}')">
+    const isToday2=ds===window.todayStr();
+    const isFuture=ds>window.todayStr();
+    let achClass='';
+    if(!isFuture){
+      const pct=getDayAchievePct(ds);
+      if(pct!==null){
+        if(pct===100) achClass=' ach-full';
+        else if(pct>=70) achClass=' ach-high';
+        else if(pct>=30) achClass=' ach-mid';
+        else if(pct>0) achClass=' ach-low';
+      }
+    }
+    html+=`<div class="cal-day${ds===window.todayStr()?' today':''}${ds===selDate?' sel':''}${achClass}" onclick="selectDay('${ds}')">
       <div class="dnum">${d}</div>
       <div class="cal-dots">${dots.map(dot=>`<div class="cal-dot" style="background:${dot.done?dot.color+'88':dot.color};"></div>`).join('')}</div>
     </div>`;
