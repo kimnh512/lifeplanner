@@ -393,6 +393,8 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       </div>
     </div>
     <div id="todo-stats" class="stats"></div>
+    <div id="today-wrap"></div>
+    <div id="notes-wrap"></div>
     <div id="todo-deadline-wrap"></div>
     <div id="todo-dayof-wrap"></div>
   </div>
@@ -558,7 +560,7 @@ function docRef(name,id){return doc(db,'users',uid,name,String(id));}
 async function fsSet(c,id,data){setSyncStatus('syncing');await setDoc(docRef(c,id),data);setSyncStatus('done');}
 async function fsDel(c,id){setSyncStatus('syncing');await deleteDoc(docRef(c,id));setSyncStatus('done');}
 
-let todos=[],lts=[],buckets=[],checks={};
+let todos=[],lts=[],buckets=[],checks={},notes=[];
 let ltOpen={},curType='deadline';
 let calYear,calMonth,selDate;
 const now2=new Date();
@@ -567,9 +569,10 @@ calYear=now2.getFullYear();calMonth=now2.getMonth();selDate=window.fmt(now2);
 function initData(){
   unsubscribers.forEach(u=>u());unsubscribers=[];
   unsubscribers.push(onSnapshot(col('todos'),snap=>{todos=snap.docs.map(d=>d.data());renderTodos();renderCal();renderDaily();}));
-  unsubscribers.push(onSnapshot(col('lts'),snap=>{lts=snap.docs.map(d=>d.data());renderLt();renderAchieve();renderCal();renderDaily();}));
+  unsubscribers.push(onSnapshot(col('lts'),snap=>{lts=snap.docs.map(d=>d.data());renderLt();renderAchieve();renderCal();renderDaily();renderTodos();}));
   unsubscribers.push(onSnapshot(col('buckets'),snap=>{buckets=snap.docs.map(d=>d.data());renderBuckets();updateTicker();}));
-  unsubscribers.push(onSnapshot(col('checks'),snap=>{checks={};snap.docs.forEach(d=>{checks[d.id]=d.data().v;});renderCal();renderDaily();renderLt();renderAchieve();}));
+  unsubscribers.push(onSnapshot(col('checks'),snap=>{checks={};snap.docs.forEach(d=>{checks[d.id]=d.data().v;});renderCal();renderDaily();renderLt();renderAchieve();renderTodos();}));
+  unsubscribers.push(onSnapshot(col('notes'),snap=>{notes=snap.docs.map(d=>d.data()).sort((a,b)=>a.id-b.id);renderNotes();}));
 }
 
 let tickIdx=0;
@@ -746,7 +749,7 @@ function ddayInfo(t){
   return{label:'D-'+d,cls:'dday-ok'};
 }
 
-function renderTodoRow(t){
+function renderTodoRow(t, opts={}){
   const cat=catById(t.cat);
   const dd=t.type==='deadline'?ddayInfo(t):null;
   const meta=[];
@@ -755,7 +758,10 @@ function renderTodoRow(t){
     if(t.due)meta.push('마감 '+t.due.slice(5).replace('-','/')+(t.dueTime?' '+t.dueTime:''));
   }else{if(t.dayof)meta.push(t.dayof.slice(5).replace('-','/')+(t.dayofTime?' '+t.dayofTime:''));}
   const imgs=t.imgs&&t.imgs.length?`<div class="todo-imgs">${t.imgs.map(u=>`<img class="todo-img" src="${window.esc(u)}" onclick="viewImg('${window.esc(u)}')">`).join('')}</div>`:'';
-  return `<div class="g-row">
+  const dragAttr=opts.draggable?`draggable="true" ondragstart="dragTodo(event,${t.id})"`:'';
+  const todayBtn=opts.showTodayBtn?`<button class="edit-btn" style="color:var(--accent2);border-color:var(--accent2);" onclick="setTodayFlag(${t.id})">오늘+</button>`:'';
+  const backBtn=opts.showBackBtn?`<button class="edit-btn" onclick="removeTodayFlag(${t.id})">빼기</button>`:'';
+  return `<div class="g-row" ${dragAttr} style="${opts.draggable?'cursor:grab;':''}">
     <div class="cat-bar" style="background:${cat.color}"></div>
     <button class="chk ${t.done?'on':''}" style="border-color:${cat.color};${t.done?'background:'+cat.color:''}" onclick="toggleTodo(${t.id})">${t.done?'✓':''}</button>
     <div style="flex:1;min-width:0;">
@@ -769,12 +775,40 @@ function renderTodoRow(t){
       </div>${imgs}
     </div>
     ${dd?`<span class="dday-chip ${dd.cls}">${dd.label}</span>`:''}
+    ${todayBtn}${backBtn}
     <button class="edit-btn" onclick="openEdit(${t.id})">수정</button>
     <button class="dbtn" onclick="delTodo(${t.id})">×</button>
   </div>`;
 }
 
+// ── 드래그앤드롭 ──
+window.dragTodo=(ev,id)=>{ev.dataTransfer.setData('text/plain',String(id));};
+window.allowDrop=ev=>{ev.preventDefault();ev.currentTarget.style.outline='2px dashed var(--accent2)';};
+window.dragLeave=ev=>{ev.currentTarget.style.outline='';};
+window.dropToToday=async ev=>{
+  ev.preventDefault();ev.currentTarget.style.outline='';
+  const id=+ev.dataTransfer.getData('text/plain');
+  await setTodayFlag(id);
+};
+window.setTodayFlag=async id=>{
+  const t=todos.find(x=>x.id===id);if(!t)return;
+  await fsSet('todos',id,{...t,todayFlag:window.todayStr()});
+};
+window.removeTodayFlag=async id=>{
+  const t=todos.find(x=>x.id===id);if(!t)return;
+  const u={...t};delete u.todayFlag;
+  await fsSet('todos',id,u);
+};
+
+// 오늘 섹션에서 매일반복 체크 (오늘 날짜 기준)
+window.toggleTodayChk=async subId=>{
+  const k=window.todayStr()+'_'+subId;setSyncStatus('syncing');
+  if(checks[k]){await fsDel('checks',k);}else{await setDoc(doc(db,'users',uid,'checks',k),{v:true});}
+  setSyncStatus('done');
+};
+
 function renderTodos(){
+  const todayS=window.todayStr();
   const deadline=todos.filter(t=>t.type==='deadline');
   const dayof=todos.filter(t=>t.type==='dayof');
   const done=todos.filter(t=>t.done).length;
@@ -782,21 +816,103 @@ function renderTodos(){
     `<span class="stchip">전체 ${todos.length}</span>`+
     `<span class="stchip" style="color:var(--teal-d)">완료 ${done}</span>`+
     `<span class="stchip" style="color:var(--salmon-d)">남은 ${todos.length-done}</span>`;
+
+  // ── 오늘 할 일 섹션 ──
+  const tw=document.getElementById('today-wrap');
+  const todayDayof=dayof.filter(t=>t.dayof===todayS);
+  const todayFlagged=deadline.filter(t=>t.todayFlag===todayS);
+  const dailySubs=getAllDaily();
+  let todayHtml='';
+  // 매일반복 과제
+  dailySubs.forEach(({ltName,sub})=>{
+    const cdone=!!checks[todayS+'_'+sub.id];
+    todayHtml+=`<div class="g-row">
+      <div class="cat-bar" style="background:var(--teal-d)"></div>
+      <button class="chk teal-c ${cdone?'on':''}" onclick="toggleTodayChk(${sub.id})">${cdone?'✓':''}</button>
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:14px;color:var(--text);${cdone?'text-decoration:line-through;opacity:.45':''}">${window.esc(sub.text)}</span>
+        <div class="sub-meta"><span>🎯 ${window.esc(ltName)}</span></div>
+      </div>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--teal-bg);color:var(--teal-d);">매일반복</span>
+    </div>`;
+  });
+  // 오늘로 끌어온 마감 항목
+  todayFlagged.forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
+  // 오늘 날짜 당일 할 일
+  todayDayof.forEach(t=>{todayHtml+=renderTodoRow(t);});
+  tw.innerHTML=`<div class="slbl">🌟 오늘 할 일</div>
+    <div class="g-card" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)" style="min-height:50px;">
+      ${todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">마감 있는 할 일을 여기로 드래그하거나<br>오늘+ 버튼을 눌러 추가하세요</div>'}
+    </div>`;
+
+  // ── 알아둘 것 ──
+  renderNotes();
+
+  // ── 마감 있는 할 일 (카테고리별 그룹) ──
   const dw=document.getElementById('todo-deadline-wrap');
-  if(!deadline.length){dw.innerHTML='';}else{
-    const sorted=[...deadline].sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due.localeCompare(b.due);});
-    dw.innerHTML=`<div class="slbl">마감 있는 할 일</div><div class="g-card">`+sorted.map(renderTodoRow).join('')+`</div>`;
+  const deadlineNotToday=deadline.filter(t=>t.todayFlag!==todayS);
+  if(!deadlineNotToday.length){dw.innerHTML='';}else{
+    const byCat={};
+    deadlineNotToday.forEach(t=>{const k=t.cat||'etc2';if(!byCat[k])byCat[k]=[];byCat[k].push(t);});
+    let html='<div class="slbl">📌 마감 있는 할 일</div>';
+    // 카테고리 순서는 cats 배열 순서대로
+    cats.forEach(c=>{
+      if(!byCat[c.id])return;
+      const sorted=byCat[c.id].sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due.localeCompare(b.due);});
+      html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;color:${c.color};">● ${window.esc(c.name)}</div><div class="g-card">`;
+      html+=sorted.map(t=>renderTodoRow(t,{draggable:true,showTodayBtn:true})).join('');
+      html+=`</div>`;
+    });
+    // cats에 없는 카테고리 (삭제된 것)
+    Object.keys(byCat).forEach(k=>{
+      if(cats.find(c=>c.id===k))return;
+      html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;">● 기타</div><div class="g-card">`;
+      html+=byCat[k].map(t=>renderTodoRow(t,{draggable:true,showTodayBtn:true})).join('');
+      html+=`</div>`;
+    });
+    dw.innerHTML=html;
   }
+
+  // ── 당일 할 일 (오늘 제외 다른 날짜) ──
   const dof=document.getElementById('todo-dayof-wrap');
-  if(!dayof.length){dof.innerHTML='';return;}
-  const byDate={};dayof.forEach(t=>{const k=t.dayof||window.todayStr();if(!byDate[k])byDate[k]=[];byDate[k].push(t);});
-  let html='<div class="slbl">당일 할 일</div>';
+  const otherDayof=dayof.filter(t=>t.dayof!==todayS);
+  if(!otherDayof.length){dof.innerHTML='';return;}
+  const byDate={};otherDayof.forEach(t=>{const k=t.dayof||todayS;if(!byDate[k])byDate[k]=[];byDate[k].push(t);});
+  let html='<div class="slbl">당일 할 일 (다른 날)</div>';
   Object.keys(byDate).sort().forEach(date=>{
     const p=date.split('-');
-    html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;">${parseInt(p[1])}월 ${parseInt(p[2])}일${date===window.todayStr()?' · 오늘':''}</div><div class="g-card">`;
-    html+=byDate[date].map(renderTodoRow).join('');html+=`</div>`;
+    html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;">${parseInt(p[1])}월 ${parseInt(p[2])}일</div><div class="g-card">`;
+    html+=byDate[date].map(t=>renderTodoRow(t)).join('');html+=`</div>`;
   });
   dof.innerHTML=html;
+}
+
+// ── 알아둘 것 (메모) ──
+window.addNote=async()=>{
+  const inp=document.getElementById('note-input');if(!inp)return;
+  const t=inp.value.trim();if(!t)return;
+  const id=Date.now();inp.value='';
+  await fsSet('notes',id,{id,text:t});
+};
+window.delNote=async id=>{await fsDel('notes',id);};
+function renderNotes(){
+  const wrap=document.getElementById('notes-wrap');if(!wrap)return;
+  let listHtml='';
+  notes.forEach(n=>{
+    listHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--sep);">
+      <span style="font-size:13px;flex-shrink:0;">📌</span>
+      <span style="flex:1;font-size:13px;color:var(--text2);min-width:0;">${window.esc(n.text)}</span>
+      <button class="dbtn" onclick="delNote(${n.id})">×</button>
+    </div>`;
+  });
+  wrap.innerHTML=`<div class="slbl">📋 알아둘 것</div>
+    <div class="g-card" style="background:#fffbea;">
+      ${listHtml}
+      <div style="display:flex;gap:7px;padding:9px 14px;align-items:center;">
+        <input id="note-input" placeholder="강의실 변동, 마트가기 등" onkeydown="if(event.key==='Enter')addNote()" style="font-family:'Pretendard',sans-serif;font-size:13px;flex:1;border:none;background:rgba(255,255,255,0.7);border-radius:7px;padding:6px 10px;color:var(--text);outline:none;min-width:0;">
+        <button class="abtn accent2" onclick="addNote()" style="padding:6px 13px;font-size:13px;">추가</button>
+      </div>
+    </div>`;
 }
 
 // LONGTERM
