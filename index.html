@@ -36,7 +36,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* 오늘 할 일 플로팅 패널 */
-#today-float{position:fixed;top:64px;right:12px;width:320px;max-width:calc(100vw - 24px);max-height:62vh;z-index:250;background:var(--card);border:2.5px solid var(--green);border-radius:14px;box-shadow:0 6px 24px rgba(31,138,88,0.25);display:flex;flex-direction:column;overflow:hidden;}
+#today-float{position:fixed;top:64px;right:12px;width:320px;height:auto;max-width:calc(100vw - 24px);z-index:250;background:var(--card);border:2.5px solid var(--green);border-radius:14px;box-shadow:0 6px 24px rgba(31,138,88,0.25);display:flex;flex-direction:column;overflow:hidden;}
 #today-float-hdr{background:var(--green-bg);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;flex-shrink:0;border-bottom:1.5px solid var(--green);}
 #today-float-title{font-size:13px;font-weight:700;color:var(--green-d);}
 #today-float-body{overflow-y:auto;flex:1;}
@@ -44,6 +44,9 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 #today-float.collapsed #today-float-body{display:none;}
 #today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:24px;}
 #today-float .g-row{padding:9px 12px;}
+#today-float-resize{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:251;}
+#today-float-resize::after{content:'';position:absolute;bottom:3px;right:3px;width:8px;height:8px;border-right:2px solid var(--green-d);border-bottom:2px solid var(--green-d);opacity:.6;}
+#today-float.collapsed #today-float-resize{display:none;}
 
 /* SYNC BAR */
 .sync-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--bdr);padding:8px 1.5rem;display:flex;align-items:center;justify-content:space-between;z-index:200;font-size:12px;color:var(--text3);}
@@ -91,6 +94,8 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .ttbtn{font-family:'Pretendard',sans-serif;font-size:13px;font-weight:600;padding:5px 13px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;}
 .ttbtn.on.deadline{background:var(--accent1);border-color:var(--accent1);color:#fff;}
 .ttbtn.on.dayof{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.dow-btn{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
+.dow-btn.on{background:var(--accent2);border-color:var(--accent2);color:#fff;}
 .date-row{display:flex;gap:6px;align-items:center;margin-top:9px;padding-top:9px;border-top:0.5px solid var(--sep);flex-wrap:wrap;}
 .date-row label{font-size:12px;color:var(--text3);flex-shrink:0;font-weight:600;}
 
@@ -315,7 +320,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       </div>
       <div class="modal-field">
         <label>마감 시간</label>
-        <input type="time" id="edit-due-time">
+        <input type="time" id="edit-due-time" step="1800">
       </div>
     </div>
     <div id="edit-dayof-fields" style="display:none;">
@@ -325,7 +330,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       </div>
       <div class="modal-field">
         <label>시간</label>
-        <input type="time" id="edit-dayof-time">
+        <input type="time" id="edit-dayof-time" step="1800">
       </div>
     </div>
     <div class="modal-field">
@@ -363,6 +368,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <span id="today-float-arrow" style="font-size:12px;color:var(--green-d);font-weight:700;">▲</span>
     </div>
     <div id="today-float-body"></div>
+    <div id="today-float-resize"></div>
   </div>
   <div class="ticker-wrap">
     <span class="ticker-label">BUCKET</span>
@@ -401,20 +407,34 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="date-row" id="deadline-row">
         <label>시작</label><input type="date" id="t-start">
         <label>마감</label><input type="date" id="t-due">
-        <input type="time" id="t-due-time">
+        <input type="time" id="t-due-time" step="1800">
       </div>
       <div class="date-row" id="dayof-row" style="display:none;">
         <label>날짜</label><input type="date" id="t-dayof">
-        <input type="time" id="t-dayof-time">
+        <input type="time" id="t-dayof-time" step="1800">
       </div>
-      <div class="date-row" id="repeat-row" style="display:none;">
-        <label>시작</label><input type="date" id="t-rep-start">
-        <select id="t-rep-freq">
-          <option value="daily">매일</option>
-          <option value="weekly">매주</option>
-          <option value="monthly">매월</option>
-        </select>
-        <label>종료</label><input type="date" id="t-rep-until" title="비우면 무기한">
+      <div class="date-row" id="repeat-row" style="display:none;flex-direction:column;align-items:stretch;gap:8px;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <label>시작</label><input type="date" id="t-rep-start">
+          <select id="t-rep-freq" onchange="onFreqChange()">
+            <option value="daily">매일</option>
+            <option value="weekly">매주</option>
+            <option value="monthly">매월</option>
+            <option value="weekdays">요일 지정</option>
+          </select>
+        </div>
+        <div id="t-rep-dows" style="display:none;gap:4px;flex-wrap:wrap;">
+          <button type="button" class="dow-btn" data-dow="0" onclick="toggleDow(this)">일</button>
+          <button type="button" class="dow-btn" data-dow="1" onclick="toggleDow(this)">월</button>
+          <button type="button" class="dow-btn" data-dow="2" onclick="toggleDow(this)">화</button>
+          <button type="button" class="dow-btn" data-dow="3" onclick="toggleDow(this)">수</button>
+          <button type="button" class="dow-btn" data-dow="4" onclick="toggleDow(this)">목</button>
+          <button type="button" class="dow-btn" data-dow="5" onclick="toggleDow(this)">금</button>
+          <button type="button" class="dow-btn" data-dow="6" onclick="toggleDow(this)">토</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label>종료</label><input type="date" id="t-rep-until" title="비우면 무기한">
+        </div>
       </div>
       <div class="extra-row">
         <input type="text" id="t-link" placeholder="🔗 링크 (선택)">
@@ -714,7 +734,10 @@ window.addTodo=async()=>{
   if(curType==='deadline'){
     item={id,text,cat:curCat,type:'deadline',start:document.getElementById('t-start').value||window.todayStr(),due:document.getElementById('t-due').value,dueTime:document.getElementById('t-due-time').value,link,imgs,done:false};
   }else if(curType==='repeat'){
-    item={id,text,cat:curCat,type:'repeat',repStart:document.getElementById('t-rep-start').value||window.todayStr(),freq:document.getElementById('t-rep-freq').value,until:document.getElementById('t-rep-until').value||'',link,imgs,done:false};
+    const freq=document.getElementById('t-rep-freq').value;
+    const dows=freq==='weekdays'?getSelectedDows():[];
+    if(freq==='weekdays'&&dows.length===0){alert('요일을 하나 이상 선택해주세요!');return;}
+    item={id,text,cat:curCat,type:'repeat',repStart:document.getElementById('t-rep-start').value||window.todayStr(),freq,dows,until:document.getElementById('t-rep-until').value||'',link,imgs,done:false};
   }else{
     item={id,text,cat:curCat,type:'dayof',dayof:document.getElementById('t-dayof').value||window.todayStr(),dayofTime:document.getElementById('t-dayof-time').value,link,imgs,done:false};
   }
@@ -818,6 +841,16 @@ function renderTodoRow(t, opts={}){
   </div>`;
 }
 
+// ── 반복 요일 선택 ──
+window.onFreqChange=()=>{
+  const freq=document.getElementById('t-rep-freq').value;
+  document.getElementById('t-rep-dows').style.display=freq==='weekdays'?'flex':'none';
+};
+window.toggleDow=btn=>{ btn.classList.toggle('on'); };
+function getSelectedDows(){
+  return Array.from(document.querySelectorAll('#t-rep-dows .dow-btn.on')).map(b=>+b.dataset.dow);
+}
+
 // ── 반복 할 일 판정 ──
 function isRepeatActiveOn(t, ds){
   if(t.type!=='repeat')return false;
@@ -827,6 +860,7 @@ function isRepeatActiveOn(t, ds){
   if(t.freq==='daily')return true;
   if(t.freq==='weekly')return start.getDay()===cur.getDay();
   if(t.freq==='monthly')return start.getDate()===cur.getDate();
+  if(t.freq==='weekdays')return Array.isArray(t.dows)&&t.dows.includes(cur.getDay());
   return false;
 }
 window.toggleRepChk=async(id,ds)=>{
@@ -842,15 +876,60 @@ window.toggleTodayFloat=()=>{
   document.getElementById('today-float-arrow').textContent=f.classList.contains('collapsed')?'▼':'▲';
   localStorage.setItem('lp_float_collapsed',f.classList.contains('collapsed')?'1':'0');
 };
-// 초기 상태 복원 (모바일은 기본 접힘)
+// 초기 상태 복원 (모바일은 기본 접힘) + 크기 복원
 setTimeout(()=>{
   const saved=localStorage.getItem('lp_float_collapsed');
   const shouldCollapse=saved!==null?saved==='1':window.innerWidth<700;
+  const f=document.getElementById('today-float');
   if(shouldCollapse){
-    document.getElementById('today-float').classList.add('collapsed');
+    f.classList.add('collapsed');
     document.getElementById('today-float-arrow').textContent='▼';
   }
+  // 저장된 크기 복원
+  const w=localStorage.getItem('lp_float_w');
+  const h=localStorage.getItem('lp_float_h');
+  if(w)f.style.width=w+'px';
+  if(h){f.style.height=h+'px';document.getElementById('today-float-body').style.maxHeight='none';}
+  else{f.style.height='auto';}
+  setupFloatResize();
 },100);
+
+// 리사이즈 기능
+function setupFloatResize(){
+  const handle=document.getElementById('today-float-resize');
+  const f=document.getElementById('today-float');
+  if(!handle||handle.dataset.bound)return;
+  handle.dataset.bound='1';
+  let startX,startY,startW,startH;
+  const onMove=e=>{
+    const pt=e.touches?e.touches[0]:e;
+    const newW=Math.max(220,Math.min(window.innerWidth-24,startW+(pt.clientX-startX)));
+    const newH=Math.max(150,Math.min(window.innerHeight-100,startH+(pt.clientY-startY)));
+    f.style.width=newW+'px';
+    f.style.height=newH+'px';
+    document.getElementById('today-float-body').style.maxHeight='none';
+  };
+  const onUp=()=>{
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('touchend',onUp);
+    localStorage.setItem('lp_float_w',parseInt(f.style.width));
+    localStorage.setItem('lp_float_h',parseInt(f.style.height));
+  };
+  const onDown=e=>{
+    e.preventDefault();e.stopPropagation();
+    const pt=e.touches?e.touches[0]:e;
+    startX=pt.clientX;startY=pt.clientY;
+    startW=f.offsetWidth;startH=f.offsetHeight;
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onUp);
+  };
+  handle.addEventListener('mousedown',onDown);
+  handle.addEventListener('touchstart',onDown,{passive:false});
+}
 
 // ── 드래그앤드롭 ──
 window.dragTodo=(ev,id)=>{ev.dataTransfer.setData('text/plain',String(id));};
@@ -890,53 +969,81 @@ function renderTodos(){
 
   // ── 오늘 할 일 섹션 (플로팅 패널) ──
   const tw=document.getElementById('today-float-body');
-  const todayDayof=dayof.filter(t=>t.dayof===todayS);
-  const todayFlagged=deadline.filter(t=>t.todayFlag===todayS);
+  const todayDayof=dayof.filter(t=>t.dayof===todayS&&!t.done);
+  const todayFlagged=deadline.filter(t=>t.todayFlag===todayS&&!t.done);
   const dailySubs=getAllDaily();
   let todayHtml='';
-  // 매일반복 과제
+
+  // ⚠️ 마감 지난 항목 (최상단, 빨강 강조)
+  const overdue=deadline.filter(t=>!t.done&&t.due&&t.due<todayS);
+  if(overdue.length){
+    overdue.sort((a,b)=>a.due.localeCompare(b.due));
+    todayHtml+=`<div style="background:#fff0ee;padding:5px 12px;font-size:11px;font-weight:700;color:var(--salmon-d);border-bottom:1px solid rgba(154,80,34,0.15);">⚠️ 마감 지남</div>`;
+    overdue.forEach(t=>{
+      const cat=catById(t.cat);
+      const overDays=Math.abs(window.diffDays(todayS,t.due));
+      todayHtml+=`<div class="g-row" style="background:#fff7f5;">
+        <div class="cat-bar" style="background:var(--salmon-d)"></div>
+        <button class="chk" style="border-color:var(--salmon-d);" onclick="toggleTodo(${t.id})"></button>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:${cat.color}22;color:${cat.color};">${window.esc(cat.name)}</span>
+            <span style="font-size:14px;color:var(--text);">${window.esc(t.text)}</span>
+          </div>
+          <div class="sub-meta"><span style="color:var(--salmon-d);font-weight:600;">${t.due.slice(5).replace('-','/')} 마감 · ${overDays}일 지남</span></div>
+        </div>
+        <span class="dday-chip dday-urgent">D+${overDays}</span>
+      </div>`;
+    });
+  }
+
+  // 매일반복 과제 (완료 안 한 것만)
   dailySubs.forEach(({ltName,sub})=>{
     const cdone=!!checks[todayS+'_'+sub.id];
+    if(cdone)return;
     todayHtml+=`<div class="g-row">
       <div class="cat-bar" style="background:var(--teal-d)"></div>
-      <button class="chk teal-c ${cdone?'on':''}" onclick="toggleTodayChk(${sub.id})">${cdone?'✓':''}</button>
+      <button class="chk teal-c" onclick="toggleTodayChk(${sub.id})"></button>
       <div style="flex:1;min-width:0;">
-        <span style="font-size:14px;color:var(--text);${cdone?'text-decoration:line-through;opacity:.45':''}">${window.esc(sub.text)}</span>
+        <span style="font-size:14px;color:var(--text);">${window.esc(sub.text)}</span>
         <div class="sub-meta"><span>🎯 ${window.esc(ltName)}</span></div>
       </div>
       <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--teal-bg);color:var(--teal-d);">매일반복</span>
     </div>`;
   });
-  // 반복 할 일 (오늘 해당)
+  // 반복 할 일 (오늘 해당, 완료 안 한 것만)
   todos.filter(t=>isRepeatActiveOn(t,todayS)).forEach(t=>{
-    const cat=catById(t.cat);
     const rdone=!!checks[todayS+'_r'+t.id];
-    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+    if(rdone)return;
+    const cat=catById(t.cat);
+    const dowNamesT=['일','월','화','수','목','금','토'];
+    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':t.freq==='monthly'?'매월':(t.dows||[]).map(d=>dowNamesT[d]).join('');
     todayHtml+=`<div class="g-row">
       <div class="cat-bar" style="background:${cat.color}"></div>
-      <button class="chk ${rdone?'on':''}" style="border-color:${cat.color};${rdone?'background:'+cat.color:''}" onclick="toggleRepChk(${t.id},'${todayS}')">${rdone?'✓':''}</button>
+      <button class="chk" style="border-color:${cat.color};" onclick="toggleRepChk(${t.id},'${todayS}')"></button>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:${cat.color}22;color:${cat.color};">${window.esc(cat.name)}</span>
-          <span style="font-size:14px;color:var(--text);${rdone?'text-decoration:line-through;opacity:.45':''}">${window.esc(t.text)}</span>
+          <span style="font-size:14px;color:var(--text);">${window.esc(t.text)}</span>
         </div>
         ${t.until?`<div class="sub-meta"><span>~${t.until.slice(5).replace('-','/')}까지</span></div>`:''}
       </div>
       <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${cat.color}22;color:${cat.color};">${freqLabel}</span>
     </div>`;
   });
-  // 오늘로 끌어온 마감 항목
-  todayFlagged.forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
-  // 오늘 날짜 당일 할 일
+  // 오늘로 끌어온 마감 항목 (완료 안 한 것, 마감 안 지난 것)
+  todayFlagged.filter(t=>!(t.due&&t.due<todayS)).forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
+  // 오늘 날짜 당일 할 일 (완료 안 한 것)
   todayDayof.forEach(t=>{todayHtml+=renderTodoRow(t);});
-  tw.innerHTML=todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">마감 있는 할 일을 여기로 드래그하거나<br>오늘+ 버튼을 눌러 추가하세요</div>';
+  tw.innerHTML=todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">오늘 할 일을 모두 끝냈어요! 🎉<br>마감 항목을 여기로 드래그하거나<br>오늘+ 버튼으로 추가하세요</div>';
 
+  
   // ── 알아둘 것 ──
   renderNotes();
 
-  // ── 마감 있는 할 일 (카테고리별 그룹) ──
+  // ── 마감 있는 할 일 (카테고리별 그룹, 완료 제외) ──
   const dw=document.getElementById('todo-deadline-wrap');
-  const deadlineNotToday=deadline.filter(t=>t.todayFlag!==todayS);
+  const deadlineNotToday=deadline.filter(t=>t.todayFlag!==todayS&&!t.done);
   if(!deadlineNotToday.length){dw.innerHTML='';}else{
     const byCat={};
     deadlineNotToday.forEach(t=>{const k=t.cat||'etc2';if(!byCat[k])byCat[k]=[];byCat[k].push(t);});
@@ -966,7 +1073,8 @@ function renderTodos(){
     repHtml='<div class="slbl">🔁 반복 할 일</div><div class="g-card">';
     repeats.forEach(t=>{
       const cat=catById(t.cat);
-      const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+      const dowNames=['일','월','화','수','목','금','토'];
+      const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':t.freq==='monthly'?'매월':(t.dows||[]).map(d=>dowNames[d]).join('·');
       repHtml+=`<div class="g-row">
         <div class="cat-bar" style="background:${cat.color}"></div>
         <div style="flex:1;min-width:0;">
@@ -982,10 +1090,17 @@ function renderTodos(){
     repHtml+='</div>';
   }
 
-  // ── 당일 할 일 (오늘 제외 다른 날짜) ──
+  // ── 당일 할 일 (오늘 제외 다른 날짜, 완료 제외) ──
   const dof=document.getElementById('todo-dayof-wrap');
-  const otherDayof=dayof.filter(t=>t.dayof!==todayS);
-  if(!otherDayof.length){dof.innerHTML=repHtml;return;}
+  const otherDayof=dayof.filter(t=>t.dayof!==todayS&&!t.done);
+  // 완료 챕터 HTML 준비
+  const doneItems=todos.filter(t=>t.done&&(t.type==='deadline'||t.type==='dayof'));
+  let doneHtml='';
+  if(doneItems.length){
+    doneItems.sort((a,b)=>b.id-a.id);
+    doneHtml='<div class="slbl">✅ 완료</div><div class="g-card">'+doneItems.map(t=>renderTodoRow(t)).join('')+'</div>';
+  }
+  if(!otherDayof.length){dof.innerHTML=repHtml+doneHtml;return;}
   const byDate={};otherDayof.forEach(t=>{const k=t.dayof||todayS;if(!byDate[k])byDate[k]=[];byDate[k].push(t);});
   let html='<div class="slbl">당일 할 일 (다른 날)</div>';
   Object.keys(byDate).sort().forEach(date=>{
@@ -993,7 +1108,7 @@ function renderTodos(){
     html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;">${parseInt(p[1])}월 ${parseInt(p[2])}일</div><div class="g-card">`;
     html+=byDate[date].map(t=>renderTodoRow(t)).join('');html+=`</div>`;
   });
-  dof.innerHTML=repHtml+html;
+  dof.innerHTML=repHtml+html+doneHtml;
 }
 
 // ── 알아둘 것 (메모) ──
@@ -1414,7 +1529,8 @@ function renderDaily(){
   todos.filter(t=>isRepeatActiveOn(t,selDate)).forEach(t=>{
     const cat=catById(t.cat);
     const rdone=!!checks[selDate+'_r'+t.id];
-    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+    const dowNamesD=['일','월','화','수','목','금','토'];
+    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':t.freq==='monthly'?'매월':(t.dows||[]).map(d=>dowNamesD[d]).join('');
     html+=`<div class="daily-row">
       <div style="width:3px;border-radius:3px;align-self:stretch;min-height:18px;background:${cat.color};flex-shrink:0;"></div>
       <button class="chk ${rdone?'on':''}" style="border-color:${cat.color};${rdone?'background:'+cat.color:''}" onclick="toggleRepChk(${t.id},'${selDate}')">${rdone?'✓':''}</button>
