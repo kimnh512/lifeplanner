@@ -358,10 +358,13 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 
   <!-- TODO -->
   <div class="sec on" id="sec-todo">
+    <div id="today-wrap"></div>
+    <div id="notes-wrap"></div>
     <div class="add-card">
       <div class="type-toggle">
         <button class="ttbtn on deadline" id="tt-deadline" onclick="setType('deadline')">마감 있음</button>
         <button class="ttbtn" id="tt-dayof" onclick="setType('dayof')">당일 할 일</button>
+        <button class="ttbtn" id="tt-repeat" onclick="setType('repeat')">반복</button>
       </div>
       <div class="add-row">
         <input type="text" id="ti" placeholder="할 일 추가" onkeydown="if(event.key==='Enter')addTodo()">
@@ -382,6 +385,15 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
         <label>날짜</label><input type="date" id="t-dayof">
         <input type="time" id="t-dayof-time">
       </div>
+      <div class="date-row" id="repeat-row" style="display:none;">
+        <label>시작</label><input type="date" id="t-rep-start">
+        <select id="t-rep-freq">
+          <option value="daily">매일</option>
+          <option value="weekly">매주</option>
+          <option value="monthly">매월</option>
+        </select>
+        <label>종료</label><input type="date" id="t-rep-until" title="비우면 무기한">
+      </div>
       <div class="extra-row">
         <input type="text" id="t-link" placeholder="🔗 링크 (선택)">
         <label class="img-upload-btn" for="t-img-input">📷 사진 추가 (선택)</label>
@@ -393,8 +405,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       </div>
     </div>
     <div id="todo-stats" class="stats"></div>
-    <div id="today-wrap"></div>
-    <div id="notes-wrap"></div>
     <div id="todo-deadline-wrap"></div>
     <div id="todo-dayof-wrap"></div>
   </div>
@@ -606,8 +616,11 @@ window.setType=type=>{
   curType=type;
   document.getElementById('tt-deadline').className='ttbtn'+(type==='deadline'?' on deadline':'');
   document.getElementById('tt-dayof').className='ttbtn'+(type==='dayof'?' on dayof':'');
+  document.getElementById('tt-repeat').className='ttbtn'+(type==='repeat'?' on dayof':'');
   document.getElementById('deadline-row').style.display=type==='deadline'?'flex':'none';
   document.getElementById('dayof-row').style.display=type==='dayof'?'flex':'none';
+  document.getElementById('repeat-row').style.display=type==='repeat'?'flex':'none';
+  const rs=document.getElementById('t-rep-start');if(rs&&!rs.value)rs.value=window.todayStr();
   setStartToday();
 };
 
@@ -678,6 +691,8 @@ window.addTodo=async()=>{
   let item;
   if(curType==='deadline'){
     item={id,text,cat:curCat,type:'deadline',start:document.getElementById('t-start').value||window.todayStr(),due:document.getElementById('t-due').value,dueTime:document.getElementById('t-due-time').value,link,imgs,done:false};
+  }else if(curType==='repeat'){
+    item={id,text,cat:curCat,type:'repeat',repStart:document.getElementById('t-rep-start').value||window.todayStr(),freq:document.getElementById('t-rep-freq').value,until:document.getElementById('t-rep-until').value||'',link,imgs,done:false};
   }else{
     item={id,text,cat:curCat,type:'dayof',dayof:document.getElementById('t-dayof').value||window.todayStr(),dayofTime:document.getElementById('t-dayof-time').value,link,imgs,done:false};
   }
@@ -781,6 +796,23 @@ function renderTodoRow(t, opts={}){
   </div>`;
 }
 
+// ── 반복 할 일 판정 ──
+function isRepeatActiveOn(t, ds){
+  if(t.type!=='repeat')return false;
+  if(!t.repStart||ds<t.repStart)return false;
+  if(t.until&&ds>t.until)return false;
+  const start=window.parseDate(t.repStart), cur=window.parseDate(ds);
+  if(t.freq==='daily')return true;
+  if(t.freq==='weekly')return start.getDay()===cur.getDay();
+  if(t.freq==='monthly')return start.getDate()===cur.getDate();
+  return false;
+}
+window.toggleRepChk=async(id,ds)=>{
+  const k=ds+'_r'+id;setSyncStatus('syncing');
+  if(checks[k]){await fsDel('checks',k);}else{await setDoc(doc(db,'users',uid,'checks',k),{v:true});}
+  setSyncStatus('done');
+};
+
 // ── 드래그앤드롭 ──
 window.dragTodo=(ev,id)=>{ev.dataTransfer.setData('text/plain',String(id));};
 window.allowDrop=ev=>{ev.preventDefault();ev.currentTarget.style.outline='2px dashed var(--accent2)';};
@@ -836,6 +868,24 @@ function renderTodos(){
       <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--teal-bg);color:var(--teal-d);">매일반복</span>
     </div>`;
   });
+  // 반복 할 일 (오늘 해당)
+  todos.filter(t=>isRepeatActiveOn(t,todayS)).forEach(t=>{
+    const cat=catById(t.cat);
+    const rdone=!!checks[todayS+'_r'+t.id];
+    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+    todayHtml+=`<div class="g-row">
+      <div class="cat-bar" style="background:${cat.color}"></div>
+      <button class="chk ${rdone?'on':''}" style="border-color:${cat.color};${rdone?'background:'+cat.color:''}" onclick="toggleRepChk(${t.id},'${todayS}')">${rdone?'✓':''}</button>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:${cat.color}22;color:${cat.color};">${window.esc(cat.name)}</span>
+          <span style="font-size:14px;color:var(--text);${rdone?'text-decoration:line-through;opacity:.45':''}">${window.esc(t.text)}</span>
+        </div>
+        ${t.until?`<div class="sub-meta"><span>~${t.until.slice(5).replace('-','/')}까지</span></div>`:''}
+      </div>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${cat.color}22;color:${cat.color};">${freqLabel}</span>
+    </div>`;
+  });
   // 오늘로 끌어온 마감 항목
   todayFlagged.forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
   // 오늘 날짜 당일 할 일
@@ -873,10 +923,33 @@ function renderTodos(){
     dw.innerHTML=html;
   }
 
+  // ── 반복 할 일 목록 ──
+  const repeats=todos.filter(t=>t.type==='repeat');
+  let repHtml='';
+  if(repeats.length){
+    repHtml='<div class="slbl">🔁 반복 할 일</div><div class="g-card">';
+    repeats.forEach(t=>{
+      const cat=catById(t.cat);
+      const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+      repHtml+=`<div class="g-row">
+        <div class="cat-bar" style="background:${cat.color}"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:${cat.color}22;color:${cat.color};">${window.esc(cat.name)}</span>
+            <span style="font-size:14px;color:var(--text);">${window.esc(t.text)}</span>
+          </div>
+          <div class="sub-meta"><span>${freqLabel} · ${t.repStart.slice(5).replace('-','/')}부터${t.until?' ~'+t.until.slice(5).replace('-','/')+'까지':''}</span></div>
+        </div>
+        <button class="dbtn" onclick="delTodo(${t.id})">×</button>
+      </div>`;
+    });
+    repHtml+='</div>';
+  }
+
   // ── 당일 할 일 (오늘 제외 다른 날짜) ──
   const dof=document.getElementById('todo-dayof-wrap');
   const otherDayof=dayof.filter(t=>t.dayof!==todayS);
-  if(!otherDayof.length){dof.innerHTML='';return;}
+  if(!otherDayof.length){dof.innerHTML=repHtml;return;}
   const byDate={};otherDayof.forEach(t=>{const k=t.dayof||todayS;if(!byDate[k])byDate[k]=[];byDate[k].push(t);});
   let html='<div class="slbl">당일 할 일 (다른 날)</div>';
   Object.keys(byDate).sort().forEach(date=>{
@@ -884,32 +957,69 @@ function renderTodos(){
     html+=`<div class="slbl" style="font-size:10px;margin-top:.6rem;">${parseInt(p[1])}월 ${parseInt(p[2])}일</div><div class="g-card">`;
     html+=byDate[date].map(t=>renderTodoRow(t)).join('');html+=`</div>`;
   });
-  dof.innerHTML=html;
+  dof.innerHTML=repHtml+html;
 }
 
 // ── 알아둘 것 (메모) ──
 window.addNote=async()=>{
   const inp=document.getElementById('note-input');if(!inp)return;
   const t=inp.value.trim();if(!t)return;
-  const id=Date.now();inp.value='';
-  await fsSet('notes',id,{id,text:t});
+  const dateInp=document.getElementById('note-date');
+  const nd=dateInp?dateInp.value:'';
+  const id=Date.now();inp.value='';if(dateInp)dateInp.value='';
+  await fsSet('notes',id,{id,text:t,date:nd||''});
 };
 window.delNote=async id=>{await fsDel('notes',id);};
 function renderNotes(){
   const wrap=document.getElementById('notes-wrap');if(!wrap)return;
-  let listHtml='';
+  const todayS=window.todayStr();
+  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowS=window.fmt(tomorrow);
+  const weekEnd=new Date();weekEnd.setDate(weekEnd.getDate()+7);
+  const weekEndS=window.fmt(weekEnd);
+
+  const groups={today:[],tomorrow:[],week:[],later:[],nodate:[],past:[]};
   notes.forEach(n=>{
-    listHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--sep);">
+    if(!n.date){groups.nodate.push(n);}
+    else if(n.date<todayS){groups.past.push(n);}
+    else if(n.date===todayS){groups.today.push(n);}
+    else if(n.date===tomorrowS){groups.tomorrow.push(n);}
+    else if(n.date<=weekEndS){groups.week.push(n);}
+    else{groups.later.push(n);}
+  });
+
+  function noteRow(n,showDate){
+    const dateLabel=showDate&&n.date?`<span style="font-size:10px;font-weight:700;color:var(--sand-d);flex-shrink:0;">${n.date.slice(5).replace('-','/')}</span>`:'';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--sep);">
       <span style="font-size:13px;flex-shrink:0;">📌</span>
       <span style="flex:1;font-size:13px;color:var(--text2);min-width:0;">${window.esc(n.text)}</span>
+      ${dateLabel}
       <button class="dbtn" onclick="delNote(${n.id})">×</button>
     </div>`;
+  }
+
+  let listHtml='';
+  const sections=[
+    {key:'today',label:'오늘',showDate:false},
+    {key:'tomorrow',label:'내일',showDate:false},
+    {key:'week',label:'일주일 안',showDate:true},
+    {key:'later',label:'나중에',showDate:true},
+    {key:'nodate',label:'날짜 없음',showDate:false},
+    {key:'past',label:'지난 것',showDate:true},
+  ];
+  sections.forEach(({key,label,showDate})=>{
+    if(!groups[key].length)return;
+    listHtml+=`<div style="font-size:10px;font-weight:700;color:var(--text3);padding:7px 14px 2px;letter-spacing:.05em;">${label}</div>`;
+    groups[key].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    groups[key].forEach(n=>{listHtml+=noteRow(n,showDate);});
   });
+
   wrap.innerHTML=`<div class="slbl">📋 알아둘 것</div>
     <div class="g-card" style="background:#fffbea;">
       ${listHtml}
-      <div style="display:flex;gap:7px;padding:9px 14px;align-items:center;">
-        <input id="note-input" placeholder="강의실 변동, 마트가기 등" onkeydown="if(event.key==='Enter')addNote()" style="font-family:'Pretendard',sans-serif;font-size:13px;flex:1;border:none;background:rgba(255,255,255,0.7);border-radius:7px;padding:6px 10px;color:var(--text);outline:none;min-width:0;">
+      <div style="display:flex;gap:6px;padding:9px 14px;align-items:center;flex-wrap:wrap;">
+        <input id="note-input" placeholder="강의실 변동, 마트가기 등" onkeydown="if(event.key==='Enter')addNote()" style="font-family:'Pretendard',sans-serif;font-size:13px;flex:1;border:none;background:rgba(255,255,255,0.7);border-radius:7px;padding:6px 10px;color:var(--text);outline:none;min-width:120px;">
+        <input type="date" id="note-date" style="font-family:'Pretendard',sans-serif;font-size:12px;border:none;background:rgba(255,255,255,0.7);border-radius:7px;padding:6px 8px;color:var(--text2);outline:none;">
         <button class="abtn accent2" onclick="addNote()" style="padding:6px 13px;font-size:13px;">추가</button>
       </div>
     </div>`;
@@ -1146,6 +1256,7 @@ function getDotsForDate(ds){
   todos.forEach(t=>{
     if(t.type==='deadline'){const start=t.start||t.due;if(start&&t.due&&ds>=start&&ds<=t.due)dots.push({color:catById(t.cat).color,done:t.done});}
     else if(t.type==='dayof'&&t.dayof===ds)dots.push({color:catById(t.cat).color,done:t.done});
+    else if(isRepeatActiveOn(t,ds))dots.push({color:catById(t.cat).color,done:!!checks[ds+'_r'+t.id]});
   });
   getAllDaily().forEach(({sub})=>{const done=!!checks[ds+'_'+sub.id];dots.push({color:done?'#34c759':'var(--teal-d)',done});});
   return dots;
@@ -1216,6 +1327,20 @@ function renderDaily(){
           ${t.link?`<a class="link-btn" href="${window.esc(t.link)}" target="_blank">🔗 링크</a>`:''}
           ${dl?`<span class="dday-chip ${dc}" style="font-size:10px;padding:1px 6px;">${dl}</span>`:''}
         </div>${imgs}
+      </div>
+    </div>`;
+  });
+  // 반복 할 일
+  todos.filter(t=>isRepeatActiveOn(t,selDate)).forEach(t=>{
+    const cat=catById(t.cat);
+    const rdone=!!checks[selDate+'_r'+t.id];
+    const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':'매월';
+    html+=`<div class="daily-row">
+      <div style="width:3px;border-radius:3px;align-self:stretch;min-height:18px;background:${cat.color};flex-shrink:0;"></div>
+      <button class="chk ${rdone?'on':''}" style="border-color:${cat.color};${rdone?'background:'+cat.color:''}" onclick="toggleRepChk(${t.id},'${selDate}')">${rdone?'✓':''}</button>
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:14px;color:var(--text);${rdone?'text-decoration:line-through;opacity:.45':''}">${window.esc(t.text)}</span>
+        <div class="sub-meta"><span>${freqLabel} 반복</span></div>
       </div>
     </div>`;
   });
