@@ -35,6 +35,16 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .spinner{width:32px;height:32px;border:3px solid var(--teal-bg);border-top-color:var(--teal-d);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* 오늘 할 일 플로팅 패널 */
+#today-float{position:fixed;top:64px;right:12px;width:320px;max-width:calc(100vw - 24px);max-height:62vh;z-index:250;background:var(--card);border:2.5px solid var(--green);border-radius:14px;box-shadow:0 6px 24px rgba(31,138,88,0.25);display:flex;flex-direction:column;overflow:hidden;}
+#today-float-hdr{background:var(--green-bg);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;flex-shrink:0;border-bottom:1.5px solid var(--green);}
+#today-float-title{font-size:13px;font-weight:700;color:var(--green-d);}
+#today-float-body{overflow-y:auto;flex:1;}
+#today-float.collapsed{width:auto;max-height:none;border-radius:24px;}
+#today-float.collapsed #today-float-body{display:none;}
+#today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:24px;}
+#today-float .g-row{padding:9px 12px;}
+
 /* SYNC BAR */
 .sync-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--bdr);padding:8px 1.5rem;display:flex;align-items:center;justify-content:space-between;z-index:200;font-size:12px;color:var(--text3);}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;display:inline-block;}
@@ -175,7 +185,12 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .nav-btn{background:var(--bg);border:none;border-radius:7px;padding:4px 12px;font-family:'Pretendard',sans-serif;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);width:100%;}
 .cal-dow{background:var(--bg);text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:5px 0;border-bottom:0.5px solid var(--sep);}
-.cal-day{border-bottom:0.5px solid var(--sep);border-right:0.5px solid var(--sep);padding:3px 2px;cursor:pointer;min-height:46px;transition:background .12s;overflow:hidden;}
+.cal-day{border-bottom:0.5px solid var(--sep);border-right:0.5px solid var(--sep);padding:3px 2px;cursor:pointer;min-height:92px;transition:background .12s;overflow:hidden;display:flex;flex-direction:column;}
+.cal-day.dragover{background:var(--green-bg);outline:2px dashed var(--green-d);outline-offset:-2px;}
+.cal-tag{font-size:9px;font-weight:600;padding:1.5px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1.5px;cursor:grab;line-height:1.5;color:#fff;}
+.cal-tag.done-tag{opacity:.4;text-decoration:line-through;}
+.cal-tag.no-drag{cursor:default;}
+.cal-more{font-size:8px;color:var(--text3);font-weight:700;padding:0 2px;}
 .cal-day:nth-child(7n){border-right:none;}
 .cal-day:hover{background:var(--teal-bg);}
 .cal-day.other{opacity:.25;}
@@ -341,6 +356,14 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 </div>
 
 <div id="app" style="display:none;">
+  <!-- 오늘 할 일 플로팅 패널 -->
+  <div id="today-float" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)">
+    <div id="today-float-hdr" onclick="toggleTodayFloat()">
+      <span id="today-float-title">🌟 오늘 할 일</span>
+      <span id="today-float-arrow" style="font-size:12px;color:var(--green-d);font-weight:700;">▲</span>
+    </div>
+    <div id="today-float-body"></div>
+  </div>
   <div class="ticker-wrap">
     <span class="ticker-label">BUCKET</span>
     <div class="ticker-dot"></div>
@@ -358,7 +381,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 
   <!-- TODO -->
   <div class="sec on" id="sec-todo">
-    <div id="today-wrap"></div>
     <div id="notes-wrap"></div>
     <div class="add-card">
       <div class="type-toggle">
@@ -813,6 +835,23 @@ window.toggleRepChk=async(id,ds)=>{
   setSyncStatus('done');
 };
 
+// ── 오늘 할 일 플로팅 토글 ──
+window.toggleTodayFloat=()=>{
+  const f=document.getElementById('today-float');
+  f.classList.toggle('collapsed');
+  document.getElementById('today-float-arrow').textContent=f.classList.contains('collapsed')?'▼':'▲';
+  localStorage.setItem('lp_float_collapsed',f.classList.contains('collapsed')?'1':'0');
+};
+// 초기 상태 복원 (모바일은 기본 접힘)
+setTimeout(()=>{
+  const saved=localStorage.getItem('lp_float_collapsed');
+  const shouldCollapse=saved!==null?saved==='1':window.innerWidth<700;
+  if(shouldCollapse){
+    document.getElementById('today-float').classList.add('collapsed');
+    document.getElementById('today-float-arrow').textContent='▼';
+  }
+},100);
+
 // ── 드래그앤드롭 ──
 window.dragTodo=(ev,id)=>{ev.dataTransfer.setData('text/plain',String(id));};
 window.allowDrop=ev=>{ev.preventDefault();ev.currentTarget.style.outline='2px dashed var(--accent2)';};
@@ -849,8 +888,8 @@ function renderTodos(){
     `<span class="stchip" style="color:var(--teal-d)">완료 ${done}</span>`+
     `<span class="stchip" style="color:var(--salmon-d)">남은 ${todos.length-done}</span>`;
 
-  // ── 오늘 할 일 섹션 ──
-  const tw=document.getElementById('today-wrap');
+  // ── 오늘 할 일 섹션 (플로팅 패널) ──
+  const tw=document.getElementById('today-float-body');
   const todayDayof=dayof.filter(t=>t.dayof===todayS);
   const todayFlagged=deadline.filter(t=>t.todayFlag===todayS);
   const dailySubs=getAllDaily();
@@ -890,10 +929,7 @@ function renderTodos(){
   todayFlagged.forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
   // 오늘 날짜 당일 할 일
   todayDayof.forEach(t=>{todayHtml+=renderTodoRow(t);});
-  tw.innerHTML=`<div class="slbl">🌟 오늘 할 일</div>
-    <div class="g-card" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)" style="min-height:50px;">
-      ${todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">마감 있는 할 일을 여기로 드래그하거나<br>오늘+ 버튼을 눌러 추가하세요</div>'}
-    </div>`;
+  tw.innerHTML=todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">마감 있는 할 일을 여기로 드래그하거나<br>오늘+ 버튼을 눌러 추가하세요</div>';
 
   // ── 알아둘 것 ──
   renderNotes();
@@ -1266,6 +1302,43 @@ function renderLegend(){
   el.innerHTML=cats.map(c=>`<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:8px;height:8px;border-radius:50%;background:${c.color};display:inline-block;"></span>${window.esc(c.name)}</span>`).join('')+
     `<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:8px;height:8px;border-radius:50%;background:var(--teal-d);display:inline-block;"></span>반복</span>`;
 }
+// 날짜 칸에 표시할 항목들
+function getTagsForDate(ds){
+  const tags=[];
+  todos.forEach(t=>{
+    const cat=catById(t.cat);
+    if(t.type==='deadline'&&t.due===ds){
+      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:'due'});
+    } else if(t.type==='dayof'&&t.dayof===ds){
+      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:'dayof'});
+    } else if(isRepeatActiveOn(t,ds)){
+      tags.push({id:t.id,text:t.text,color:cat.color,done:!!checks[ds+'_r'+t.id],dragType:null});
+    }
+  });
+  return tags;
+}
+
+// 캘린더 드래그앤드롭 (날짜 이동)
+window.calDragStart=(ev,id,dragType)=>{
+  ev.stopPropagation();
+  ev.dataTransfer.setData('text/plain',JSON.stringify({id,dragType}));
+};
+window.calDragOver=ev=>{ev.preventDefault();ev.currentTarget.classList.add('dragover');};
+window.calDragLeave=ev=>{ev.currentTarget.classList.remove('dragover');};
+window.calDrop=async(ev,ds)=>{
+  ev.preventDefault();ev.currentTarget.classList.remove('dragover');
+  let data;
+  try{data=JSON.parse(ev.dataTransfer.getData('text/plain'));}catch(e){return;}
+  const t=todos.find(x=>x.id===data.id);if(!t)return;
+  if(data.dragType==='dayof'){
+    await fsSet('todos',t.id,{...t,dayof:ds});
+  } else if(data.dragType==='due'){
+    const u={...t,due:ds};
+    if(u.start&&u.start>ds)u.start=ds;
+    await fsSet('todos',t.id,u);
+  }
+};
+
 function renderCal(){
   document.getElementById('cal-title').textContent=calYear+'년 '+(calMonth+1)+'월';
   const first=new Date(calYear,calMonth,1),last=new Date(calYear,calMonth+1,0),todayS=window.todayStr();
@@ -1275,9 +1348,8 @@ function renderCal(){
   for(let i=first.getDay()-1;i>=0;i--)html+=`<div class="cal-day other"><div class="dnum">${prevLast.getDate()-i}</div></div>`;
   for(let d=1;d<=last.getDate();d++){
     const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const dots=getDotsForDate(ds).slice(0,6);
-    const isToday2=ds===window.todayStr();
-    const isFuture=ds>window.todayStr();
+    const tags=getTagsForDate(ds);
+    const isFuture=ds>todayS;
     let achClass='';
     if(!isFuture){
       const pct=getDayAchievePct(ds);
@@ -1288,9 +1360,17 @@ function renderCal(){
         else if(pct>0) achClass=' ach-low';
       }
     }
-    html+=`<div class="cal-day${ds===window.todayStr()?' today':''}${ds===selDate?' sel':''}${achClass}" onclick="selectDay('${ds}')">
+    const maxShow=4;
+    const shown=tags.slice(0,maxShow);
+    const more=tags.length-maxShow;
+    html+=`<div class="cal-day${ds===todayS?' today':''}${ds===selDate?' sel':''}${achClass}" onclick="selectDay('${ds}')"
+      ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${ds}')">
       <div class="dnum">${d}</div>
-      <div class="cal-dots">${dots.map(dot=>`<div class="cal-dot" style="background:${dot.done?dot.color+'88':dot.color};"></div>`).join('')}</div>
+      ${shown.map(tag=>`<div class="cal-tag${tag.done?' done-tag':''}${tag.dragType?'':' no-drag'}"
+        style="background:${tag.color};"
+        ${tag.dragType?`draggable="true" ondragstart="calDragStart(event,${tag.id},'${tag.dragType}')"`:''}
+        title="${window.esc(tag.text)}">${window.esc(tag.text)}</div>`).join('')}
+      ${more>0?`<div class="cal-more">+${more}</div>`:''}
     </div>`;
   }
   const rem=(7-((first.getDay()+last.getDate())%7))%7;
