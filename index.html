@@ -35,25 +35,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .spinner{width:32px;height:32px;border:3px solid var(--teal-bg);border-top-color:var(--teal-d);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* 오늘 할 일 플로팅 패널 */
-#today-float{position:fixed;top:64px;right:12px;width:320px;height:auto;max-height:62vh;z-index:250;background:var(--card);border:2.5px solid var(--green);border-radius:14px;box-shadow:0 6px 24px rgba(31,138,88,0.25);display:flex;flex-direction:column;overflow:hidden;}
-#today-float-hdr{background:var(--green-bg);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:grab;flex-shrink:0;border-bottom:1.5px solid var(--green);user-select:none;touch-action:none;}
-#today-float-hdr:active{cursor:grabbing;}
-#today-float-title{font-size:14px;font-weight:700;color:var(--green-d);pointer-events:none;}
-#today-float-toggle{font-size:13px;color:var(--green-d);font-weight:700;background:transparent;border:none;cursor:pointer;padding:3px 9px;border-radius:6px;pointer-events:auto;}
-#today-float-toggle:hover{background:rgba(31,138,88,0.12);}
-#today-float-body{overflow-y:auto;flex:1;min-height:0;}
-#today-float .g-row{padding:9px 12px;}
-/* 접힘: 헤더만 남고 내용 숨김 */
-#today-float.collapsed{height:auto;max-height:none;min-height:0;}
-#today-float.collapsed #today-float-body,#today-float.collapsed #today-float-resize,#today-float.collapsed #today-float-resize-l{display:none;}
-#today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:11px;}
-/* 리사이즈 핸들 */
-#today-float-resize{position:absolute;bottom:0;right:0;width:24px;height:24px;cursor:nwse-resize;z-index:251;touch-action:none;}
-#today-float-resize::after{content:'';position:absolute;bottom:4px;right:4px;width:9px;height:9px;border-right:2.5px solid var(--green-d);border-bottom:2.5px solid var(--green-d);opacity:.7;}
-#today-float-resize-l{position:absolute;top:36px;left:0;bottom:24px;width:12px;cursor:ew-resize;z-index:251;touch-action:none;}
-#today-float-resize-l::after{content:'';position:absolute;top:50%;left:3px;transform:translateY(-50%);width:3px;height:30px;border-radius:2px;background:var(--green-d);opacity:.4;}
-
 /* SYNC BAR */
 .sync-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--bdr);padding:8px 1.5rem;display:flex;align-items:center;justify-content:space-between;z-index:200;font-size:12px;color:var(--text3);}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;display:inline-block;}
@@ -367,16 +348,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 </div>
 
 <div id="app" style="display:none;">
-  <!-- 오늘 할 일 플로팅 패널 -->
-  <div id="today-float" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)">
-    <div id="today-float-hdr">
-      <span id="today-float-title">🌟 오늘 할 일</span>
-      <button id="today-float-toggle" onclick="floatToggleBtn(event)">▲</button>
-    </div>
-    <div id="today-float-body"></div>
-    <div id="today-float-resize"></div>
-    <div id="today-float-resize-l"></div>
-  </div>
   <div class="ticker-wrap">
     <span class="ticker-label">BUCKET</span>
     <div class="ticker-dot"></div>
@@ -385,16 +356,16 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
   <div class="hdr">
     <div class="hdr-title">내 삶 정리함</div>
     <div class="seg">
-      <button class="seg-b on" onclick="sw('todo')">할 일</button>
+      <button class="seg-b on" onclick="sw('cal')">캘린더</button>
+      <button class="seg-b" onclick="sw('todo')">할 일</button>
       <button class="seg-b" onclick="sw('lt')">장기 목표</button>
-      <button class="seg-b" onclick="sw('cal')">캘린더</button>
       <button class="seg-b" onclick="sw('bucket')">버킷리스트</button>
     </div>
   </div>
 
   <!-- TODO -->
-  <div class="sec on" id="sec-todo">
-    <div id="notes-wrap"></div>
+  <div class="sec" id="sec-todo">
+    <div id="today-wrap"></div>
     <div class="add-card">
       <div class="type-toggle">
         <button class="ttbtn on deadline" id="tt-deadline" onclick="setType('deadline')">마감 있음</button>
@@ -485,7 +456,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
   </div>
 
   <!-- CALENDAR -->
-  <div class="sec" id="sec-cal">
+  <div class="sec on" id="sec-cal">
     <div class="cal-wrap">
       <div class="cal-hdr">
         <span class="cal-title" id="cal-title"></span>
@@ -497,6 +468,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div id="cal-grid"></div>
     </div>
     <div id="cal-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:.9rem;padding:0 2px;"></div>
+    <div id="notes-wrap"></div>
     <div class="daily-panel">
       <div class="daily-hdr">
         <span class="daily-title">선택한 날의 할 일</span>
@@ -650,9 +622,9 @@ window.sw=tab=>{
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.seg-b').forEach(b=>b.classList.remove('on'));
   document.getElementById('sec-'+tab).classList.add('on');
-  const idx={todo:0,lt:1,cal:2,bucket:3};
+  const idx={cal:0,todo:1,lt:2,bucket:3};
   document.querySelectorAll('.seg-b')[idx[tab]].classList.add('on');
-  if(tab==='cal'){renderCal();renderDaily();renderLegend();}
+  if(tab==='cal'){renderCal();renderDaily();renderLegend();renderNotes();}
   if(tab==='todo'){setStartToday();}
   if(tab==='lt'){renderAchieve();}
 };
@@ -877,141 +849,6 @@ window.toggleRepChk=async(id,ds)=>{
 };
 
 // ── 오늘 할 일 플로팅: 토글/이동/크기조절 ──
-function doToggleFloat(){
-  const f=document.getElementById('today-float');
-  const collapsed=f.classList.toggle('collapsed');
-  document.getElementById('today-float-toggle').textContent=collapsed?'🌟':'▲';
-  localStorage.setItem('lp_float_collapsed',collapsed?'1':'0');
-  if(!collapsed)restoreFloatSize();
-}
-// 삼각형 버튼 전용 토글 (드래그와 분리)
-window.floatToggleBtn=(e)=>{ if(e){e.stopPropagation();e.preventDefault();} doToggleFloat(); };
-window.toggleTodayFloat=(e)=>{ if(e)e.stopPropagation(); };
-
-function restoreFloatSize(){
-  const f=document.getElementById('today-float');
-  const w=localStorage.getItem('lp_float_w');
-  const h=localStorage.getItem('lp_float_h');
-  if(w)f.style.width=w+'px';
-  if(h){f.style.height=h+'px';f.style.maxHeight='none';}
-}
-
-// 초기화: 위치/크기/접힘 상태 복원
-setTimeout(()=>{
-  const f=document.getElementById('today-float');
-  const saved=localStorage.getItem('lp_float_collapsed');
-  const shouldCollapse=saved!==null?saved==='1':window.innerWidth<700;
-  if(shouldCollapse){
-    f.classList.add('collapsed');
-    document.getElementById('today-float-toggle').textContent='🌟';
-  }else{
-    restoreFloatSize();
-  }
-  const px=localStorage.getItem('lp_float_x'), py=localStorage.getItem('lp_float_y');
-  if(px!==null&&py!==null){
-    f.style.left=px+'px';f.style.top=py+'px';f.style.right='auto';
-  }
-  setupFloatDrag();
-  setupFloatResize();
-},100);
-
-// 헤더: 누르고 안 움직이면 토글, 움직이면 이동 (클릭/드래그 통합)
-function setupFloatDrag(){
-  const hdr=document.getElementById('today-float-hdr');
-  const f=document.getElementById('today-float');
-  if(!hdr||hdr.dataset.bound)return;
-  hdr.dataset.bound='1';
-  let startX,startY,startLeft,startTop,moved,dragging;
-  const onMove=e=>{
-    const pt=e.touches?e.touches[0]:e;
-    const dx=pt.clientX-startX, dy=pt.clientY-startY;
-    if(!moved&&(Math.abs(dx)>4||Math.abs(dy)>4))moved=true;
-    if(!moved)return;
-    let nl=startLeft+dx, nt=startTop+dy;
-    nl=Math.max(4,Math.min(window.innerWidth-f.offsetWidth-4,nl));
-    nt=Math.max(4,Math.min(window.innerHeight-f.offsetHeight-4,nt));
-    f.style.left=nl+'px';f.style.top=nt+'px';f.style.right='auto';
-    if(e.cancelable)e.preventDefault();
-  };
-  const onUp=()=>{
-    document.removeEventListener('mousemove',onMove);
-    document.removeEventListener('mouseup',onUp);
-    document.removeEventListener('touchmove',onMove);
-    document.removeEventListener('touchend',onUp);
-    if(moved){
-      localStorage.setItem('lp_float_x',parseInt(f.style.left));
-      localStorage.setItem('lp_float_y',parseInt(f.style.top));
-    }
-    dragging=false;
-  };
-  const onDown=e=>{
-    if(dragging)return;
-    if(e.target.id==='today-float-toggle')return;
-    dragging=true;moved=false;
-    const pt=e.touches?e.touches[0]:e;
-    const rect=f.getBoundingClientRect();
-    startX=pt.clientX;startY=pt.clientY;startLeft=rect.left;startTop=rect.top;
-    document.addEventListener('mousemove',onMove);
-    document.addEventListener('mouseup',onUp);
-    document.addEventListener('touchmove',onMove,{passive:false});
-    document.addEventListener('touchend',onUp);
-  };
-  hdr.addEventListener('mousedown',onDown);
-  hdr.addEventListener('touchstart',onDown,{passive:true});
-}
-
-// 크기조절 (오른쪽아래 양방향 + 왼쪽 가로)
-function setupFloatResize(){
-  const f=document.getElementById('today-float');
-  const corner=document.getElementById('today-float-resize');
-  const left=document.getElementById('today-float-resize-l');
-  if(corner&&!corner.dataset.bound){
-    corner.dataset.bound='1';
-    let sx,sy,sw,sh;
-    const mv=e=>{
-      const pt=e.touches?e.touches[0]:e;
-      f.style.width=Math.max(200,Math.min(window.innerWidth-20,sw+(pt.clientX-sx)))+'px';
-      f.style.height=Math.max(140,Math.min(window.innerHeight-80,sh+(pt.clientY-sy)))+'px';
-      f.style.maxHeight='none';
-      if(e.cancelable)e.preventDefault();
-    };
-    const up=()=>{
-      document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
-      document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);
-      localStorage.setItem('lp_float_w',parseInt(f.style.width));
-      localStorage.setItem('lp_float_h',parseInt(f.style.height));
-    };
-    const dn=e=>{e.preventDefault();e.stopPropagation();const pt=e.touches?e.touches[0]:e;
-      sx=pt.clientX;sy=pt.clientY;sw=f.offsetWidth;sh=f.offsetHeight;
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
-      document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',up);};
-    corner.addEventListener('mousedown',dn);corner.addEventListener('touchstart',dn,{passive:false});
-  }
-  if(left&&!left.dataset.bound){
-    left.dataset.bound='1';
-    let sx,sw,sl;
-    const mv=e=>{
-      const pt=e.touches?e.touches[0]:e;
-      const dx=pt.clientX-sx;
-      const nw=Math.max(200,Math.min(window.innerWidth-20,sw-dx));
-      f.style.width=nw+'px';
-      f.style.left=(sl+dx)+'px';f.style.right='auto';
-      if(e.cancelable)e.preventDefault();
-    };
-    const up=()=>{
-      document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
-      document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);
-      localStorage.setItem('lp_float_w',parseInt(f.style.width));
-      localStorage.setItem('lp_float_x',parseInt(f.style.left));
-    };
-    const dn=e=>{e.preventDefault();e.stopPropagation();const pt=e.touches?e.touches[0]:e;
-      const rect=f.getBoundingClientRect();sx=pt.clientX;sw=f.offsetWidth;sl=rect.left;
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
-      document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',up);};
-    left.addEventListener('mousedown',dn);left.addEventListener('touchstart',dn,{passive:false});
-  }
-}
-
 // ── 드래그앤드롭 ──
 window.dragTodo=(ev,id)=>{ev.dataTransfer.setData('text/plain',String(id));};
 window.allowDrop=ev=>{ev.preventDefault();ev.currentTarget.style.outline='2px dashed var(--accent2)';};
@@ -1048,8 +885,8 @@ function renderTodos(){
     `<span class="stchip" style="color:var(--teal-d)">완료 ${done}</span>`+
     `<span class="stchip" style="color:var(--salmon-d)">남은 ${todos.length-done}</span>`;
 
-  // ── 오늘 할 일 섹션 (플로팅 패널) ──
-  const tw=document.getElementById('today-float-body');
+  // ── 오늘 할 일 섹션 ──
+  const tw=document.getElementById('today-wrap');
   const todayDayof=dayof.filter(t=>t.dayof===todayS&&!t.done);
   const todayFlagged=deadline.filter(t=>t.todayFlag===todayS&&!t.done);
   const dailySubs=getAllDaily();
@@ -1116,7 +953,7 @@ function renderTodos(){
   todayFlagged.filter(t=>!(t.due&&t.due<todayS)).forEach(t=>{todayHtml+=renderTodoRow(t,{showBackBtn:true});});
   // 오늘 날짜 당일 할 일 (완료 안 한 것)
   todayDayof.forEach(t=>{todayHtml+=renderTodoRow(t);});
-  tw.innerHTML=todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">오늘 할 일을 모두 끝냈어요! 🎉<br>마감 항목을 여기로 드래그하거나<br>오늘+ 버튼으로 추가하세요</div>';
+  tw.innerHTML='<div class="slbl">🌟 오늘 할 일</div><div class="g-card" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)" style="border:2px solid var(--green);">'+(todayHtml||'<div class="empty" style="padding:1rem 0;font-size:13px;">오늘 할 일을 모두 끝냈어요! 🎉<br>마감 항목을 여기로 드래그하거나<br>오늘+ 버튼으로 추가하세요</div>')+'</div>';
 
   
   // ── 알아둘 것 ──
@@ -1664,7 +1501,7 @@ function renderBuckets(){
 }
 
 function initApp(){
-  setStartToday();renderCatChips();renderCal();renderDaily();updateTicker();
+  setStartToday();renderCatChips();renderCal();renderDaily();renderNotes();renderTodos();updateTicker();
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW',e));}
 }
 </script>
