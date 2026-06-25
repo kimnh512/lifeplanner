@@ -40,15 +40,14 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 #today-float-hdr{background:var(--green-bg);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:grab;flex-shrink:0;border-bottom:1.5px solid var(--green);user-select:none;touch-action:none;}
 #today-float-hdr:active{cursor:grabbing;}
 #today-float-title{font-size:14px;font-weight:700;color:var(--green-d);pointer-events:none;}
-#today-float-toggle{font-size:12px;color:var(--green-d);font-weight:700;background:transparent;border:none;cursor:pointer;padding:2px 6px;border-radius:6px;}
+#today-float-toggle{font-size:13px;color:var(--green-d);font-weight:700;background:transparent;border:none;cursor:pointer;padding:3px 9px;border-radius:6px;pointer-events:auto;}
 #today-float-toggle:hover{background:rgba(31,138,88,0.12);}
 #today-float-body{overflow-y:auto;flex:1;min-height:0;}
 #today-float .g-row{padding:9px 12px;}
-/* 동그라미로 접힘 */
-#today-float.collapsed{width:44px;height:44px;max-height:44px;min-height:44px;border-radius:50%;overflow:hidden;}
-#today-float.collapsed #today-float-body,#today-float.collapsed #today-float-resize,#today-float.collapsed #today-float-resize-l,#today-float.collapsed #today-float-title{display:none;}
-#today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:50%;width:100%;height:100%;padding:0;justify-content:center;cursor:grab;}
-#today-float.collapsed #today-float-toggle{font-size:18px;padding:0;}
+/* 접힘: 헤더만 남고 내용 숨김 */
+#today-float.collapsed{height:auto;max-height:none;min-height:0;}
+#today-float.collapsed #today-float-body,#today-float.collapsed #today-float-resize,#today-float.collapsed #today-float-resize-l{display:none;}
+#today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:11px;}
 /* 리사이즈 핸들 */
 #today-float-resize{position:absolute;bottom:0;right:0;width:24px;height:24px;cursor:nwse-resize;z-index:251;touch-action:none;}
 #today-float-resize::after{content:'';position:absolute;bottom:4px;right:4px;width:9px;height:9px;border-right:2.5px solid var(--green-d);border-bottom:2.5px solid var(--green-d);opacity:.7;}
@@ -372,7 +371,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
   <div id="today-float" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)">
     <div id="today-float-hdr">
       <span id="today-float-title">🌟 오늘 할 일</span>
-      <span id="today-float-toggle" style="pointer-events:none;">▲</span>
+      <button id="today-float-toggle" onclick="floatToggleBtn(event)">▲</button>
     </div>
     <div id="today-float-body"></div>
     <div id="today-float-resize"></div>
@@ -885,7 +884,8 @@ function doToggleFloat(){
   localStorage.setItem('lp_float_collapsed',collapsed?'1':'0');
   if(!collapsed)restoreFloatSize();
 }
-// 버튼 onclick에서 직접 호출 (펼쳐진 상태에서 ▲ 버튼용)
+// 삼각형 버튼 전용 토글 (드래그와 분리)
+window.floatToggleBtn=(e)=>{ if(e){e.stopPropagation();e.preventDefault();} doToggleFloat(); };
 window.toggleTodayFloat=(e)=>{ if(e)e.stopPropagation(); };
 
 function restoreFloatSize(){
@@ -941,14 +941,12 @@ function setupFloatDrag(){
     if(moved){
       localStorage.setItem('lp_float_x',parseInt(f.style.left));
       localStorage.setItem('lp_float_y',parseInt(f.style.top));
-    }else{
-      // 안 움직였으면 = 클릭 = 토글
-      doToggleFloat();
     }
     dragging=false;
   };
   const onDown=e=>{
     if(dragging)return;
+    if(e.target.id==='today-float-toggle')return;
     dragging=true;moved=false;
     const pt=e.touches?e.touches[0]:e;
     const rect=f.getBoundingClientRect();
