@@ -45,10 +45,10 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 #today-float-body{overflow-y:auto;flex:1;min-height:0;}
 #today-float .g-row{padding:9px 12px;}
 /* 동그라미로 접힘 */
-#today-float.collapsed{width:56px;height:56px;max-height:56px;min-height:56px;border-radius:50%;overflow:hidden;}
+#today-float.collapsed{width:44px;height:44px;max-height:44px;min-height:44px;border-radius:50%;overflow:hidden;}
 #today-float.collapsed #today-float-body,#today-float.collapsed #today-float-resize,#today-float.collapsed #today-float-resize-l,#today-float.collapsed #today-float-title{display:none;}
 #today-float.collapsed #today-float-hdr{border-bottom:none;border-radius:50%;width:100%;height:100%;padding:0;justify-content:center;cursor:grab;}
-#today-float.collapsed #today-float-toggle{font-size:22px;padding:0;}
+#today-float.collapsed #today-float-toggle{font-size:18px;padding:0;}
 /* 리사이즈 핸들 */
 #today-float-resize{position:absolute;bottom:0;right:0;width:24px;height:24px;cursor:nwse-resize;z-index:251;touch-action:none;}
 #today-float-resize::after{content:'';position:absolute;bottom:4px;right:4px;width:9px;height:9px;border-right:2.5px solid var(--green-d);border-bottom:2.5px solid var(--green-d);opacity:.7;}
@@ -372,7 +372,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
   <div id="today-float" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropToToday(event)">
     <div id="today-float-hdr">
       <span id="today-float-title">🌟 오늘 할 일</span>
-      <button id="today-float-toggle" onclick="toggleTodayFloat(event)">▲</button>
+      <span id="today-float-toggle" style="pointer-events:none;">▲</span>
     </div>
     <div id="today-float-body"></div>
     <div id="today-float-resize"></div>
@@ -878,16 +878,15 @@ window.toggleRepChk=async(id,ds)=>{
 };
 
 // ── 오늘 할 일 플로팅: 토글/이동/크기조절 ──
-window.toggleTodayFloat=(e)=>{
-  if(e)e.stopPropagation();
+function doToggleFloat(){
   const f=document.getElementById('today-float');
-  // 드래그 직후 클릭은 무시
-  if(f.dataset.justDragged==='1'){f.dataset.justDragged='0';return;}
   const collapsed=f.classList.toggle('collapsed');
   document.getElementById('today-float-toggle').textContent=collapsed?'🌟':'▲';
   localStorage.setItem('lp_float_collapsed',collapsed?'1':'0');
   if(!collapsed)restoreFloatSize();
-};
+}
+// 버튼 onclick에서 직접 호출 (펼쳐진 상태에서 ▲ 버튼용)
+window.toggleTodayFloat=(e)=>{ if(e)e.stopPropagation(); };
 
 function restoreFloatSize(){
   const f=document.getElementById('today-float');
@@ -908,7 +907,6 @@ setTimeout(()=>{
   }else{
     restoreFloatSize();
   }
-  // 위치 복원
   const px=localStorage.getItem('lp_float_x'), py=localStorage.getItem('lp_float_y');
   if(px!==null&&py!==null){
     f.style.left=px+'px';f.style.top=py+'px';f.style.right='auto';
@@ -917,17 +915,18 @@ setTimeout(()=>{
   setupFloatResize();
 },100);
 
-// 헤더 잡고 이동
+// 헤더: 누르고 안 움직이면 토글, 움직이면 이동 (클릭/드래그 통합)
 function setupFloatDrag(){
   const hdr=document.getElementById('today-float-hdr');
   const f=document.getElementById('today-float');
   if(!hdr||hdr.dataset.bound)return;
   hdr.dataset.bound='1';
-  let startX,startY,startLeft,startTop,moved;
+  let startX,startY,startLeft,startTop,moved,dragging;
   const onMove=e=>{
     const pt=e.touches?e.touches[0]:e;
     const dx=pt.clientX-startX, dy=pt.clientY-startY;
-    if(Math.abs(dx)>3||Math.abs(dy)>3)moved=true;
+    if(!moved&&(Math.abs(dx)>4||Math.abs(dy)>4))moved=true;
+    if(!moved)return;
     let nl=startLeft+dx, nt=startTop+dy;
     nl=Math.max(4,Math.min(window.innerWidth-f.offsetWidth-4,nl));
     nt=Math.max(4,Math.min(window.innerHeight-f.offsetHeight-4,nt));
@@ -940,17 +939,20 @@ function setupFloatDrag(){
     document.removeEventListener('touchmove',onMove);
     document.removeEventListener('touchend',onUp);
     if(moved){
-      f.dataset.justDragged='1';
       localStorage.setItem('lp_float_x',parseInt(f.style.left));
       localStorage.setItem('lp_float_y',parseInt(f.style.top));
+    }else{
+      // 안 움직였으면 = 클릭 = 토글
+      doToggleFloat();
     }
+    dragging=false;
   };
   const onDown=e=>{
-    // 토글 버튼 클릭은 제외
-    if(e.target.id==='today-float-toggle')return;
+    if(dragging)return;
+    dragging=true;moved=false;
     const pt=e.touches?e.touches[0]:e;
     const rect=f.getBoundingClientRect();
-    startX=pt.clientX;startY=pt.clientY;startLeft=rect.left;startTop=rect.top;moved=false;
+    startX=pt.clientX;startY=pt.clientY;startLeft=rect.left;startTop=rect.top;
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
     document.addEventListener('touchmove',onMove,{passive:false});
