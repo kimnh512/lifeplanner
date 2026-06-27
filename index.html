@@ -369,11 +369,8 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <button class="ampm-btn" id="ampm-pm" onclick="setAmPm('PM')">오후</button>
     </div>
     <div style="font-size:30px;font-weight:700;color:var(--teal-d);margin-bottom:10px;" id="clock-display">12:00</div>
-    <svg id="clock-face" width="240" height="240" viewBox="0 0 240 240" style="touch-action:none;cursor:pointer;margin-bottom:8px;"></svg>
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:6px;">
-      <button class="clock-mode-btn on" id="clock-mode-hour" onclick="setClockMode('hour')">시</button>
-      <button class="clock-mode-btn" id="clock-mode-min" onclick="setClockMode('min')">분 (00/30)</button>
-    </div>
+    <svg id="clock-face" width="260" height="260" viewBox="0 0 260 260" style="touch-action:none;cursor:grab;margin-bottom:6px;"></svg>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">바늘을 돌려보세요 · 숫자 사이에 놓으면 30분</div>
     <button class="abtn teal" onclick="confirmClock()" style="width:100%;border-radius:10px;padding:11px;margin-top:8px;">확인</button>
     <button class="modal-close" onclick="closeClock()">취소</button>
   </div>
@@ -422,13 +419,13 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="date-row" id="deadline-row">
         <label>시작</label><input type="date" id="t-start">
         <label>마감</label><input type="date" id="t-due">
-        <button type="button" class="time-pick-btn" id="t-due-time-btn" onclick="openClock('t-due')">⏰ 시간</button>
+        <button type="button" class="time-pick-btn" id="t-due-time-btn" onclick="openClock('t-due')">시간 선택</button>
       </div>
       <div class="date-row" id="dayof-row" style="display:none;">
         <label>날짜</label><input type="date" id="t-dayof">
         <span style="font-size:12px;color:var(--text3);">~</span>
         <input type="date" id="t-dayof-end" title="이어서 하는 날 (하루면 비워두세요)">
-        <button type="button" class="time-pick-btn" id="t-dayof-time-btn" onclick="openClock('t-dayof')">⏰ 시간</button>
+        <button type="button" class="time-pick-btn" id="t-dayof-time-btn" onclick="openClock('t-dayof')">시간 선택</button>
       </div>
       <div class="date-row" id="repeat-row" style="display:none;flex-direction:column;align-items:stretch;gap:8px;">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -527,14 +524,14 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
           <input type="date" id="dq-dayof-start" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
           <span style="font-size:12px;color:var(--text3);">~</span>
           <input type="date" id="dq-dayof-end" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;" title="하루면 비워두세요">
-          <button class="time-pick-btn" id="dq-dayof-time-btn" onclick="openClock('dq-dayof')">⏰ 시간</button>
+          <button class="time-pick-btn" id="dq-dayof-time-btn" onclick="openClock('dq-dayof')">시간 선택</button>
         </div>
         <div id="dq-deadline-row" style="display:none;gap:6px;padding:0 14px 10px;flex-wrap:wrap;align-items:center;">
           <label style="font-size:12px;color:var(--text3);font-weight:600;">시작</label>
           <input type="date" id="dq-due-start" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
           <label style="font-size:12px;color:var(--text3);font-weight:600;">마감</label>
           <input type="date" id="dq-due-end" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
-          <button class="time-pick-btn" id="dq-due-time-btn" onclick="openClock('dq-due')">⏰ 시간</button>
+          <button class="time-pick-btn" id="dq-due-time-btn" onclick="openClock('dq-due')">시간 선택</button>
         </div>
         <div style="border-bottom:0.5px solid var(--sep);"></div>
       </div>
@@ -789,9 +786,9 @@ window.addTodo=async()=>{
   }
   inp.value='';pendingImgs=[];
   document.getElementById('img-preview-wrap').innerHTML='';
-  document.getElementById('t-due').value='';dqTimes['t-due']='';if(document.getElementById('t-due-time-btn'))document.getElementById('t-due-time-btn').textContent='⏰ 시간';
+  document.getElementById('t-due').value='';dqTimes['t-due']='';if(document.getElementById('t-due-time-btn'))document.getElementById('t-due-time-btn').textContent='시간 선택';
   document.getElementById('t-start').value=window.todayStr();
-  document.getElementById('t-dayof').value=window.todayStr();dqTimes['t-dayof']='';if(document.getElementById('t-dayof-end'))document.getElementById('t-dayof-end').value='';if(document.getElementById('t-dayof-time-btn'))document.getElementById('t-dayof-time-btn').textContent='⏰ 시간';
+  document.getElementById('t-dayof').value=window.todayStr();dqTimes['t-dayof']='';if(document.getElementById('t-dayof-end'))document.getElementById('t-dayof-end').value='';if(document.getElementById('t-dayof-time-btn'))document.getElementById('t-dayof-time-btn').textContent='시간 선택';
   document.getElementById('t-link').value='';
   await fsSet('todos',id,item);
 };
@@ -1518,27 +1515,28 @@ window.dqAdd=async()=>{
   }
   inp.value='';
   dqTimes['dq-dayof']='';dqTimes['dq-due']='';
-  document.getElementById('dq-dayof-time-btn').textContent='⏰ 시간';
-  document.getElementById('dq-due-time-btn').textContent='⏰ 시간';
+  document.getElementById('dq-dayof-time-btn').textContent='시간 선택';
+  document.getElementById('dq-due-time-btn').textContent='시간 선택';
   const e1=document.getElementById('dq-dayof-end');if(e1)e1.value='';
   const e2=document.getElementById('dq-due-end');if(e2)e2.value='';
   await fsSet('todos',id,item);
 };
 
 // ── 아날로그 시계 시간 선택 ──
-let clockTarget='', clockMode='hour', clockHour=12, clockMin=0, clockAmPm='AM';
+let clockTarget='', clockHour=12, clockMin=0, clockAmPm='AM';
+const CLOCK_CX=130, CLOCK_CY=130, CLOCK_R=98;
 window.openClock=target=>{
-  clockTarget=target;clockMode='hour';
-  // 기존 값 파싱
+  clockTarget=target;
   const cur=dqTimes[target];
   if(cur){
     let[h,m]=cur.split(':').map(Number);
     clockAmPm=h>=12?'PM':'AM';
     clockHour=h%12;if(clockHour===0)clockHour=12;
-    clockMin=m;
+    clockMin=(m>=30)?30:0;
   }else{clockHour=12;clockMin=0;clockAmPm='AM';}
-  updateAmPmBtns();setClockMode('hour');
+  updateAmPmBtns();drawClock();
   document.getElementById('clock-modal').classList.add('show');
+  setupClockDrag();
 };
 window.closeClock=()=>document.getElementById('clock-modal').classList.remove('show');
 window.setAmPm=v=>{clockAmPm=v;updateAmPmBtns();updateClockDisplay();};
@@ -1546,53 +1544,93 @@ function updateAmPmBtns(){
   document.getElementById('ampm-am').className='ampm-btn'+(clockAmPm==='AM'?' on':'');
   document.getElementById('ampm-pm').className='ampm-btn'+(clockAmPm==='PM'?' on':'');
 }
-window.setClockMode=mode=>{
-  clockMode=mode;
-  document.getElementById('clock-mode-hour').className='clock-mode-btn'+(mode==='hour'?' on':'');
-  document.getElementById('clock-mode-min').className='clock-mode-btn'+(mode==='min'?' on':'');
-  drawClock();
-};
 function updateClockDisplay(){
   const h=String(clockHour).padStart(2,'0');
   const m=String(clockMin).padStart(2,'0');
   document.getElementById('clock-display').textContent=(clockAmPm==='AM'?'오전':'오후')+' '+h+':'+m;
 }
+// 시침 각도: 시 + 30분이면 반칸 더 (12시간 = 360도, 1시간=30도, 30분=15도)
+function handAngle(){
+  const hourPos=(clockHour%12)+(clockMin===30?0.5:0);
+  return (hourPos/12)*2*Math.PI - Math.PI/2;
+}
 function drawClock(){
   const svg=document.getElementById('clock-face');
-  const cx=120,cy=120,r=92;
-  let html=`<circle cx="120" cy="120" r="110" fill="var(--bg)"/>`;
-  // 중심점
-  html+=`<circle cx="120" cy="120" r="4" fill="var(--teal-d)"/>`;
-  if(clockMode==='hour'){
-    // 1~12시
-    for(let i=1;i<=12;i++){
-      const ang=(i/12)*2*Math.PI - Math.PI/2;
-      const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
-      const sel=(i===clockHour);
-      html+=`<g class="clock-num" onclick="pickHour(${i})">
-        <circle class="clock-num-bg${sel?' sel':''}" cx="${x}" cy="${y}" r="18"/>
-        <text class="clock-num-txt${sel?' sel':''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${i}</text>
-      </g>`;
-      if(sel){html+=`<line x1="120" y1="120" x2="${x}" y2="${y}" stroke="var(--teal-d)" stroke-width="2"/>`;}
-    }
-  }else{
-    // 00, 30분만
-    [0,30].forEach(m=>{
-      const ang=(m/60)*2*Math.PI - Math.PI/2;
-      const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
-      const sel=(m===clockMin);
-      html+=`<g class="clock-num" onclick="pickMin(${m})">
-        <circle class="clock-num-bg${sel?' sel':''}" cx="${x}" cy="${y}" r="22"/>
-        <text class="clock-num-txt${sel?' sel':''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${String(m).padStart(2,'0')}</text>
-      </g>`;
-      if(sel){html+=`<line x1="120" y1="120" x2="${x}" y2="${y}" stroke="var(--teal-d)" stroke-width="2"/>`;}
-    });
+  const cx=CLOCK_CX, cy=CLOCK_CY, r=CLOCK_R;
+  let html=`<circle cx="${cx}" cy="${cy}" r="118" fill="var(--bg)"/>`;
+  // 시 숫자 (정시 위치)
+  for(let i=1;i<=12;i++){
+    const ang=(i/12)*2*Math.PI - Math.PI/2;
+    const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+    const sel=(i===clockHour && clockMin===0);
+    html+=`<circle cx="${x}" cy="${y}" r="17" fill="${sel?'var(--teal-d)':'transparent'}"/>`;
+    html+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" style="font-family:'Pretendard',sans-serif;font-size:15px;font-weight:600;fill:${sel?'#fff':'var(--text)'};pointer-events:none;">${i}</text>`;
   }
+  // 30분 위치 점 (숫자 사이)
+  for(let i=0;i<12;i++){
+    const ang=((i+0.5)/12)*2*Math.PI - Math.PI/2;
+    const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+    const hourForThis=(i===0?12:i); // 12와 1 사이 = 12시 30분
+    const sel=(clockMin===30 && clockHour===(i===0?12:i));
+    html+=`<circle cx="${x}" cy="${y}" r="${sel?9:3}" fill="${sel?'var(--teal-d)':'var(--bdr)'}"/>`;
+  }
+  // 시침 (드래그 대상)
+  const ha=handAngle();
+  const hx=cx+(r-22)*Math.cos(ha), hy=cy+(r-22)*Math.sin(ha);
+  html+=`<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="var(--teal-d)" stroke-width="4" stroke-linecap="round"/>`;
+  html+=`<circle cx="${hx}" cy="${hy}" r="13" fill="var(--teal-d)"/>`;
+  html+=`<circle cx="${cx}" cy="${cy}" r="6" fill="var(--teal-d)"/>`;
   svg.innerHTML=html;
   updateClockDisplay();
 }
-window.pickHour=h=>{clockHour=h;drawClock();setTimeout(()=>setClockMode('min'),200);};
-window.pickMin=m=>{clockMin=m;drawClock();};
+// 각도 → 시/분 (가장 가까운 30분 단위 스냅)
+function angleToTime(clientX, clientY){
+  const svg=document.getElementById('clock-face');
+  const rect=svg.getBoundingClientRect();
+  // viewBox 260 기준 좌표 변환
+  const scale=260/rect.width;
+  const px=(clientX-rect.left)*scale;
+  const py=(clientY-rect.top)*scale;
+  let ang=Math.atan2(py-CLOCK_CY, px-CLOCK_CX)+Math.PI/2;
+  if(ang<0)ang+=2*Math.PI;
+  // 0~12 범위의 연속 위치
+  let pos=(ang/(2*Math.PI))*12; // 0~12
+  // 30분 단위로 스냅 (0.5 단위)
+  let snapped=Math.round(pos*2)/2; // 0, 0.5, 1, 1.5 ...
+  if(snapped>=12)snapped-=12;
+  let hourInt=Math.floor(snapped);
+  let isHalf=(snapped-hourInt)===0.5;
+  let h=hourInt===0?12:hourInt;
+  clockHour=h;
+  clockMin=isHalf?30:0;
+  drawClock();
+}
+function setupClockDrag(){
+  const svg=document.getElementById('clock-face');
+  if(!svg||svg.dataset.bound)return;
+  svg.dataset.bound='1';
+  let dragging=false;
+  const move=e=>{
+    if(!dragging)return;
+    const pt=e.touches?e.touches[0]:e;
+    angleToTime(pt.clientX, pt.clientY);
+    if(e.cancelable)e.preventDefault();
+  };
+  const down=e=>{
+    dragging=true;
+    const pt=e.touches?e.touches[0]:e;
+    angleToTime(pt.clientX, pt.clientY);
+    if(e.cancelable)e.preventDefault();
+  };
+  const up=()=>{dragging=false;};
+  svg.addEventListener('mousedown',down);
+  document.addEventListener('mousemove',move);
+  document.addEventListener('mouseup',up);
+  svg.addEventListener('touchstart',down,{passive:false});
+  svg.addEventListener('touchmove',move,{passive:false});
+  svg.addEventListener('touchend',up);
+}
+
 window.confirmClock=()=>{
   let h=clockHour%12;
   if(clockAmPm==='PM')h+=12;
@@ -1601,7 +1639,7 @@ window.confirmClock=()=>{
   dqTimes[clockTarget]=timeStr;
   const btnId=clockTarget+'-time-btn';
   const btn=document.getElementById(btnId);
-  if(btn)btn.textContent='⏰ '+(clockAmPm==='AM'?'오전':'오후')+' '+String(clockHour).padStart(2,'0')+':'+String(clockMin).padStart(2,'0');
+  if(btn)btn.textContent=(clockAmPm==='AM'?'오전':'오후')+' '+String(clockHour).padStart(2,'0')+':'+String(clockMin).padStart(2,'0');
   closeClock();
 };
 function renderDaily(){
@@ -1627,7 +1665,7 @@ function renderDaily(){
           <span style="font-size:15px;color:var(--text);${t.done?'text-decoration:line-through;opacity:.45':''};">${window.esc(t.text)}</span>
         </div>
         <div class="sub-meta">
-          ${timeStr?`<span>⏰ ${timeStr}</span>`:''}
+          ${timeStr?`<span>🕐 ${window.to12h(timeStr)}</span>`:''}
           ${t.link?`<a class="link-btn" href="${window.esc(t.link)}" target="_blank">🔗 링크</a>`:''}
           ${dl?`<span class="dday-chip ${dc}" style="font-size:10px;padding:1px 6px;">${dl}</span>`:''}
         </div>${imgs}
