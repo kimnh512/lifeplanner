@@ -370,6 +370,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
     </div>
     <div style="font-size:30px;font-weight:700;color:var(--teal-d);margin-bottom:10px;" id="clock-display">12:00</div>
     <svg id="clock-face" width="260" height="260" viewBox="0 0 260 260" style="touch-action:none;cursor:grab;margin-bottom:6px;"></svg>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">바늘을 돌려보세요 · 숫자 사이에 놓으면 30분</div>
     <button class="abtn teal" onclick="confirmClock()" style="width:100%;border-radius:10px;padding:11px;margin-top:8px;">확인</button>
     <button class="modal-close" onclick="closeClock()">취소</button>
   </div>
@@ -1557,7 +1558,22 @@ function drawClock(){
   const svg=document.getElementById('clock-face');
   const cx=CLOCK_CX, cy=CLOCK_CY, r=CLOCK_R;
   let html=`<circle cx="${cx}" cy="${cy}" r="118" fill="var(--bg)"/>`;
-  // 시 숫자 (정시 위치)
+  // 1) 시침 먼저 (맨 아래 레이어): 선 + 중심점
+  const ha=handAngle();
+  const hx=cx+(r-20)*Math.cos(ha), hy=cy+(r-20)*Math.sin(ha);
+  html+=`<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="var(--teal-d)" stroke-width="4" stroke-linecap="round"/>`;
+  html+=`<circle cx="${cx}" cy="${cy}" r="6" fill="var(--teal-d)"/>`;
+  // 30분(숫자 사이)을 가리킬 때만 시침 끝에 강조 원
+  if(clockMin===30){
+    html+=`<circle cx="${hx}" cy="${hy}" r="11" fill="var(--teal-d)"/>`;
+  }
+  // 2) 30분 위치 점 (작은 점)
+  for(let i=0;i<12;i++){
+    const ang=((i+0.5)/12)*2*Math.PI - Math.PI/2;
+    const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+    html+=`<circle cx="${x}" cy="${y}" r="2.5" fill="var(--bdr)"/>`;
+  }
+  // 3) 시 숫자 (맨 위 레이어): 정시 선택 시 배경 원 강조
   for(let i=1;i<=12;i++){
     const ang=(i/12)*2*Math.PI - Math.PI/2;
     const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
@@ -1565,20 +1581,6 @@ function drawClock(){
     html+=`<circle cx="${x}" cy="${y}" r="17" fill="${sel?'var(--teal-d)':'transparent'}"/>`;
     html+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" style="font-family:'Pretendard',sans-serif;font-size:15px;font-weight:600;fill:${sel?'#fff':'var(--text)'};pointer-events:none;">${i}</text>`;
   }
-  // 30분 위치 점 (숫자 사이)
-  for(let i=0;i<12;i++){
-    const ang=((i+0.5)/12)*2*Math.PI - Math.PI/2;
-    const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
-    const hourForThis=(i===0?12:i); // 12와 1 사이 = 12시 30분
-    const sel=(clockMin===30 && clockHour===(i===0?12:i));
-    html+=`<circle cx="${x}" cy="${y}" r="${sel?9:3}" fill="${sel?'var(--teal-d)':'var(--bdr)'}"/>`;
-  }
-  // 시침 (드래그 대상)
-  const ha=handAngle();
-  const hx=cx+(r-22)*Math.cos(ha), hy=cy+(r-22)*Math.sin(ha);
-  html+=`<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="var(--teal-d)" stroke-width="4" stroke-linecap="round"/>`;
-  html+=`<circle cx="${hx}" cy="${hy}" r="13" fill="var(--teal-d)"/>`;
-  html+=`<circle cx="${cx}" cy="${cy}" r="6" fill="var(--teal-d)"/>`;
   svg.innerHTML=html;
   updateClockDisplay();
 }
