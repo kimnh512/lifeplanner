@@ -126,6 +126,10 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .dbtn:hover{opacity:.9;}
 .edit-btn{background:transparent;border:1px solid var(--bdr);border-radius:5px;color:var(--text3);cursor:pointer;font-size:11px;font-family:'Pretendard',sans-serif;padding:2px 7px;flex-shrink:0;font-weight:600;}
 .edit-btn:hover{background:var(--bg);}
+.row-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.row-actions .dday-chip{margin-right:auto;}
+.row-actions .edit-btn{padding:4px 11px;font-size:12px;}
+.row-actions .dbtn{font-size:20px;}
 .todo-imgs{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
 .todo-img{width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--bdr);cursor:pointer;}
 
@@ -243,6 +247,20 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .modal-field input{font-family:'Pretendard',sans-serif;font-size:14px;width:100%;border:1.5px solid var(--bdr);border-radius:8px;padding:8px 10px;color:var(--text);outline:none;background:var(--bg);}
 .modal-field input:focus{border-color:var(--accent1);}
 
+/* 빠른추가 + 시계 */
+.dq-type-btn{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
+.dq-type-btn.on{background:var(--teal-d);border-color:var(--teal-d);color:#fff;}
+.time-pick-btn{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;border:1.5px solid var(--bdr);background:transparent;color:var(--teal-d);cursor:pointer;}
+.ampm-btn{font-family:'Pretendard',sans-serif;font-size:14px;font-weight:600;padding:8px 24px;border-radius:10px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
+.ampm-btn.on{background:var(--teal-d);border-color:var(--teal-d);color:#fff;}
+.clock-mode-btn{font-family:'Pretendard',sans-serif;font-size:13px;font-weight:600;padding:6px 16px;border-radius:8px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;}
+.clock-mode-btn.on{background:var(--teal-bg);border-color:var(--teal-d);color:var(--teal-d);}
+.clock-num{cursor:pointer;}
+.clock-num-bg{fill:transparent;transition:fill .1s;}
+.clock-num-bg.sel{fill:var(--teal-d);}
+.clock-num-txt{font-family:'Pretendard',sans-serif;font-size:15px;font-weight:600;fill:var(--text);user-select:none;}
+.clock-num-txt.sel{fill:#fff;}
+
 /* 이미지 뷰어 */
 .img-viewer{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:400;align-items:center;justify-content:center;}
 .img-viewer.show{display:flex;}
@@ -342,6 +360,25 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
     <button class="modal-close" onclick="document.getElementById('msg-modal').classList.remove('show')">취소</button>
   </div>
 </div>
+<!-- 아날로그 시계 시간 선택 -->
+<div class="modal-bg" id="clock-modal" onclick="if(event.target===this)closeClock()">
+  <div class="modal" style="text-align:center;max-width:340px;margin:0 auto;border-radius:16px;">
+    <div class="modal-title" id="clock-title">시간 선택</div>
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;">
+      <button class="ampm-btn on" id="ampm-am" onclick="setAmPm('AM')">오전</button>
+      <button class="ampm-btn" id="ampm-pm" onclick="setAmPm('PM')">오후</button>
+    </div>
+    <div style="font-size:30px;font-weight:700;color:var(--teal-d);margin-bottom:10px;" id="clock-display">12:00</div>
+    <svg id="clock-face" width="240" height="240" viewBox="0 0 240 240" style="touch-action:none;cursor:pointer;margin-bottom:8px;"></svg>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:6px;">
+      <button class="clock-mode-btn on" id="clock-mode-hour" onclick="setClockMode('hour')">시</button>
+      <button class="clock-mode-btn" id="clock-mode-min" onclick="setClockMode('min')">분 (00/30)</button>
+    </div>
+    <button class="abtn teal" onclick="confirmClock()" style="width:100%;border-radius:10px;padding:11px;margin-top:8px;">확인</button>
+    <button class="modal-close" onclick="closeClock()">취소</button>
+  </div>
+</div>
+
 <div class="img-viewer" id="img-viewer" onclick="this.classList.remove('show')">
   <button class="img-viewer-close">×</button>
   <img id="img-viewer-src" src="" alt="">
@@ -385,11 +422,13 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="date-row" id="deadline-row">
         <label>시작</label><input type="date" id="t-start">
         <label>마감</label><input type="date" id="t-due">
-        <input type="time" id="t-due-time" step="1800">
+        <button type="button" class="time-pick-btn" id="t-due-time-btn" onclick="openClock('t-due')">⏰ 시간</button>
       </div>
       <div class="date-row" id="dayof-row" style="display:none;">
         <label>날짜</label><input type="date" id="t-dayof">
-        <input type="time" id="t-dayof-time" step="1800">
+        <span style="font-size:12px;color:var(--text3);">~</span>
+        <input type="date" id="t-dayof-end" title="이어서 하는 날 (하루면 비워두세요)">
+        <button type="button" class="time-pick-btn" id="t-dayof-time-btn" onclick="openClock('t-dayof')">⏰ 시간</button>
       </div>
       <div class="date-row" id="repeat-row" style="display:none;flex-direction:column;align-items:stretch;gap:8px;">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -474,6 +513,31 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
         <span class="daily-title">선택한 날의 할 일</span>
         <span class="daily-date" id="daily-date"></span>
       </div>
+      <div id="daily-quick-add">
+        <div style="display:flex;gap:6px;padding:10px 14px 6px;align-items:center;">
+          <input type="text" id="dq-text" placeholder="이 날 할 일 추가" onkeydown="if(event.key==='Enter')dqAdd()" style="font-family:'Pretendard',sans-serif;font-size:14px;flex:1;border:none;background:var(--bg);border-radius:8px;padding:8px 11px;color:var(--text);outline:none;min-width:0;">
+          <button class="abtn teal" onclick="dqAdd()" style="padding:8px 14px;">추가</button>
+        </div>
+        <div style="display:flex;gap:6px;padding:0 14px 6px;flex-wrap:wrap;align-items:center;">
+          <button class="dq-type-btn on" id="dq-type-dayof" onclick="dqSetType('dayof')">당일 할 일</button>
+          <button class="dq-type-btn" id="dq-type-deadline" onclick="dqSetType('deadline')">마감 있음</button>
+        </div>
+        <div id="dq-dayof-row" style="display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap;align-items:center;">
+          <label style="font-size:12px;color:var(--text3);font-weight:600;">기간</label>
+          <input type="date" id="dq-dayof-start" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
+          <span style="font-size:12px;color:var(--text3);">~</span>
+          <input type="date" id="dq-dayof-end" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;" title="하루면 비워두세요">
+          <button class="time-pick-btn" id="dq-dayof-time-btn" onclick="openClock('dq-dayof')">⏰ 시간</button>
+        </div>
+        <div id="dq-deadline-row" style="display:none;gap:6px;padding:0 14px 10px;flex-wrap:wrap;align-items:center;">
+          <label style="font-size:12px;color:var(--text3);font-weight:600;">시작</label>
+          <input type="date" id="dq-due-start" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
+          <label style="font-size:12px;color:var(--text3);font-weight:600;">마감</label>
+          <input type="date" id="dq-due-end" style="font-size:13px;border:none;background:var(--bg);border-radius:7px;padding:5px 8px;color:var(--text2);outline:none;">
+          <button class="time-pick-btn" id="dq-due-time-btn" onclick="openClock('dq-due')">⏰ 시간</button>
+        </div>
+        <div style="border-bottom:0.5px solid var(--sep);"></div>
+      </div>
       <div id="daily-list"></div>
     </div>
   </div>
@@ -548,6 +612,7 @@ let editCat='';
 function saveCats(){localStorage.setItem('lp_cats',JSON.stringify(cats));}
 function catById(id){return cats.find(c=>c.id===id)||{name:'기타',color:'#8e8e93'};}
 
+window.to12h=t=>{if(!t)return'';let[h,m]=t.split(':').map(Number);const ap=h>=12?'오후':'오전';let h12=h%12;if(h12===0)h12=12;return ap+' '+h12+':'+String(m).padStart(2,'0');};
 window.esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 window.fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 window.todayStr=()=>window.fmt(new Date());
@@ -624,7 +689,7 @@ window.sw=tab=>{
   document.getElementById('sec-'+tab).classList.add('on');
   const idx={cal:0,todo:1,lt:2,bucket:3};
   document.querySelectorAll('.seg-b')[idx[tab]].classList.add('on');
-  if(tab==='cal'){renderCal();renderDaily();renderLegend();renderNotes();}
+  if(tab==='cal'){renderCal();renderDaily();renderLegend();renderNotes();syncQuickAddDates();}
   if(tab==='todo'){setStartToday();}
   if(tab==='lt'){renderAchieve();}
 };
@@ -711,20 +776,22 @@ window.addTodo=async()=>{
   if(pendingImgs.filter(x=>x).length>0)imgs=await uploadImgs();
   let item;
   if(curType==='deadline'){
-    item={id,text,cat:curCat,type:'deadline',start:document.getElementById('t-start').value||window.todayStr(),due:document.getElementById('t-due').value,dueTime:document.getElementById('t-due-time').value,link,imgs,done:false};
+    item={id,text,cat:curCat,type:'deadline',start:document.getElementById('t-start').value||window.todayStr(),due:document.getElementById('t-due').value,dueTime:dqTimes['t-due']||'',link,imgs,done:false};
   }else if(curType==='repeat'){
     const freq=document.getElementById('t-rep-freq').value;
     const dows=freq==='weekdays'?getSelectedDows():[];
     if(freq==='weekdays'&&dows.length===0){alert('요일을 하나 이상 선택해주세요!');return;}
     item={id,text,cat:curCat,type:'repeat',repStart:document.getElementById('t-rep-start').value||window.todayStr(),freq,dows,until:document.getElementById('t-rep-until').value||'',link,imgs,done:false};
   }else{
-    item={id,text,cat:curCat,type:'dayof',dayof:document.getElementById('t-dayof').value||window.todayStr(),dayofTime:document.getElementById('t-dayof-time').value,link,imgs,done:false};
+    const doStart=document.getElementById('t-dayof').value||window.todayStr();
+    const doEnd=document.getElementById('t-dayof-end').value||'';
+    item={id,text,cat:curCat,type:'dayof',dayof:doStart,dayofEnd:(doEnd&&doEnd>doStart)?doEnd:'',dayofTime:dqTimes['t-dayof']||'',link,imgs,done:false};
   }
   inp.value='';pendingImgs=[];
   document.getElementById('img-preview-wrap').innerHTML='';
-  document.getElementById('t-due').value='';document.getElementById('t-due-time').value='';
+  document.getElementById('t-due').value='';dqTimes['t-due']='';if(document.getElementById('t-due-time-btn'))document.getElementById('t-due-time-btn').textContent='⏰ 시간';
   document.getElementById('t-start').value=window.todayStr();
-  document.getElementById('t-dayof').value=window.todayStr();document.getElementById('t-dayof-time').value='';
+  document.getElementById('t-dayof').value=window.todayStr();dqTimes['t-dayof']='';if(document.getElementById('t-dayof-end'))document.getElementById('t-dayof-end').value='';if(document.getElementById('t-dayof-time-btn'))document.getElementById('t-dayof-time-btn').textContent='⏰ 시간';
   document.getElementById('t-link').value='';
   await fsSet('todos',id,item);
 };
@@ -794,8 +861,13 @@ function renderTodoRow(t, opts={}){
   const meta=[];
   if(t.type==='deadline'){
     if(t.start)meta.push('시작 '+t.start.slice(5).replace('-','/'));
-    if(t.due)meta.push('마감 '+t.due.slice(5).replace('-','/')+(t.dueTime?' '+t.dueTime:''));
-  }else{if(t.dayof)meta.push(t.dayof.slice(5).replace('-','/')+(t.dayofTime?' '+t.dayofTime:''));}
+    if(t.due)meta.push('마감 '+t.due.slice(5).replace('-','/')+(t.dueTime?' '+to12h(t.dueTime):''));
+  }else if(t.type==='dayof'){
+    if(t.dayof){
+      const endPart=(t.dayofEnd&&t.dayofEnd>t.dayof)?' ~ '+t.dayofEnd.slice(5).replace('-','/'):'';
+      meta.push(t.dayof.slice(5).replace('-','/')+endPart+(t.dayofTime?' '+to12h(t.dayofTime):''));
+    }
+  }
   const imgs=t.imgs&&t.imgs.length?`<div class="todo-imgs">${t.imgs.map(u=>`<img class="todo-img" src="${window.esc(u)}" onclick="viewImg('${window.esc(u)}')">`).join('')}</div>`:'';
   const dragAttr=opts.draggable?`draggable="true" ondragstart="dragTodo(event,${t.id})"`:'';
   const todayBtn=opts.showTodayBtn?`<button class="edit-btn" style="color:var(--accent2);border-color:var(--accent2);" onclick="setTodayFlag(${t.id})">오늘+</button>`:'';
@@ -804,19 +876,21 @@ function renderTodoRow(t, opts={}){
     <div class="cat-bar" style="background:${cat.color}"></div>
     <button class="chk ${t.done?'on':''}" style="border-color:${cat.color};${t.done?'background:'+cat.color:''}" onclick="toggleTodo(${t.id})">${t.done?'✓':''}</button>
     <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px;">
-        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:${cat.color}22;color:${cat.color};">${window.esc(cat.name)}</span>
-        <span class="itxt ${t.done?'done-t':''}" style="font-size:14px;">${window.esc(t.text)}</span>
+      <div style="display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:3px;">
+        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:${cat.color}22;color:${cat.color};flex-shrink:0;">${window.esc(cat.name)}</span>
+        <span class="itxt ${t.done?'done-t':''}" style="font-size:15px;line-height:1.35;">${window.esc(t.text)}</span>
       </div>
       <div class="sub-meta">
         ${meta.map(m=>`<span>${m}</span>`).join('')}
         ${t.link?`<a class="link-btn" href="${window.esc(t.link)}" target="_blank">🔗 링크</a>`:''}
       </div>${imgs}
+      <div class="row-actions">
+        ${dd?`<span class="dday-chip ${dd.cls}">${dd.label}</span>`:''}
+        ${todayBtn}${backBtn}
+        <button class="edit-btn" onclick="openEdit(${t.id})">수정</button>
+        <button class="dbtn" onclick="delTodo(${t.id})">×</button>
+      </div>
     </div>
-    ${dd?`<span class="dday-chip ${dd.cls}">${dd.label}</span>`:''}
-    ${todayBtn}${backBtn}
-    <button class="edit-btn" onclick="openEdit(${t.id})">수정</button>
-    <button class="dbtn" onclick="delTodo(${t.id})">×</button>
   </div>`;
 }
 
@@ -1324,7 +1398,7 @@ function getDotsForDate(ds){
   const dots=[];
   todos.forEach(t=>{
     if(t.type==='deadline'){const start=t.start||t.due;if(start&&t.due&&ds>=start&&ds<=t.due)dots.push({color:catById(t.cat).color,done:t.done});}
-    else if(t.type==='dayof'&&t.dayof===ds)dots.push({color:catById(t.cat).color,done:t.done});
+    else if(t.type==='dayof'){const e=t.dayofEnd||t.dayof;if(t.dayof&&ds>=t.dayof&&ds<=e)dots.push({color:catById(t.cat).color,done:t.done});}
     else if(isRepeatActiveOn(t,ds))dots.push({color:catById(t.cat).color,done:!!checks[ds+'_r'+t.id]});
   });
   getAllDaily().forEach(({sub})=>{const done=!!checks[ds+'_'+sub.id];dots.push({color:done?'#34c759':'var(--teal-d)',done});});
@@ -1342,8 +1416,8 @@ function getTagsForDate(ds){
     const cat=catById(t.cat);
     if(t.type==='deadline'&&t.due===ds){
       tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:'due'});
-    } else if(t.type==='dayof'&&t.dayof===ds){
-      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:'dayof'});
+    } else if(t.type==='dayof'&&(t.dayof===ds||(t.dayof&&ds>=t.dayof&&ds<=(t.dayofEnd||t.dayof)))){
+      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:(t.dayofEnd&&t.dayofEnd>t.dayof)?null:'dayof'});
     } else if(isRepeatActiveOn(t,ds)){
       tags.push({id:t.id,text:t.text,color:cat.color,done:!!checks[ds+'_r'+t.id],dragType:null});
     }
@@ -1412,13 +1486,130 @@ function renderCal(){
   document.getElementById('cal-grid').innerHTML=html;
   renderLegend();
 }
-window.selectDay=ds=>{selDate=ds;renderCal();renderDaily();};
+window.selectDay=ds=>{selDate=ds;renderCal();renderDaily();syncQuickAddDates();};
+
+// ── 캘린더 빠른 추가 ──
+let dqType='dayof';
+let dqTimes={'dq-dayof':'','dq-due':'','t-dayof':'','t-due':'','edit-due':'','edit-dayof':''};  // 선택된 시간 저장
+function syncQuickAddDates(){
+  // 선택한 날짜를 기본값으로
+  const ds=document.getElementById('dq-dayof-start');if(ds)ds.value=selDate;
+  const dd=document.getElementById('dq-due-start');if(dd)dd.value=selDate;
+}
+window.dqSetType=type=>{
+  dqType=type;
+  document.getElementById('dq-type-dayof').className='dq-type-btn'+(type==='dayof'?' on':'');
+  document.getElementById('dq-type-deadline').className='dq-type-btn'+(type==='deadline'?' on':'');
+  document.getElementById('dq-dayof-row').style.display=type==='dayof'?'flex':'none';
+  document.getElementById('dq-deadline-row').style.display=type==='deadline'?'flex':'none';
+};
+window.dqAdd=async()=>{
+  const inp=document.getElementById('dq-text');const text=inp.value.trim();if(!text)return;
+  const id=Date.now();
+  let item;
+  if(dqType==='dayof'){
+    const start=document.getElementById('dq-dayof-start').value||selDate;
+    const end=document.getElementById('dq-dayof-end').value||'';
+    item={id,text,cat:curCat,type:'dayof',dayof:start,dayofEnd:(end&&end>start)?end:'',dayofTime:dqTimes['dq-dayof'],link:'',imgs:[],done:false};
+  }else{
+    const start=document.getElementById('dq-due-start').value||selDate;
+    const end=document.getElementById('dq-due-end').value||start;
+    item={id,text,cat:curCat,type:'deadline',start,due:end,dueTime:dqTimes['dq-due'],link:'',imgs:[],done:false};
+  }
+  inp.value='';
+  dqTimes['dq-dayof']='';dqTimes['dq-due']='';
+  document.getElementById('dq-dayof-time-btn').textContent='⏰ 시간';
+  document.getElementById('dq-due-time-btn').textContent='⏰ 시간';
+  const e1=document.getElementById('dq-dayof-end');if(e1)e1.value='';
+  const e2=document.getElementById('dq-due-end');if(e2)e2.value='';
+  await fsSet('todos',id,item);
+};
+
+// ── 아날로그 시계 시간 선택 ──
+let clockTarget='', clockMode='hour', clockHour=12, clockMin=0, clockAmPm='AM';
+window.openClock=target=>{
+  clockTarget=target;clockMode='hour';
+  // 기존 값 파싱
+  const cur=dqTimes[target];
+  if(cur){
+    let[h,m]=cur.split(':').map(Number);
+    clockAmPm=h>=12?'PM':'AM';
+    clockHour=h%12;if(clockHour===0)clockHour=12;
+    clockMin=m;
+  }else{clockHour=12;clockMin=0;clockAmPm='AM';}
+  updateAmPmBtns();setClockMode('hour');
+  document.getElementById('clock-modal').classList.add('show');
+};
+window.closeClock=()=>document.getElementById('clock-modal').classList.remove('show');
+window.setAmPm=v=>{clockAmPm=v;updateAmPmBtns();updateClockDisplay();};
+function updateAmPmBtns(){
+  document.getElementById('ampm-am').className='ampm-btn'+(clockAmPm==='AM'?' on':'');
+  document.getElementById('ampm-pm').className='ampm-btn'+(clockAmPm==='PM'?' on':'');
+}
+window.setClockMode=mode=>{
+  clockMode=mode;
+  document.getElementById('clock-mode-hour').className='clock-mode-btn'+(mode==='hour'?' on':'');
+  document.getElementById('clock-mode-min').className='clock-mode-btn'+(mode==='min'?' on':'');
+  drawClock();
+};
+function updateClockDisplay(){
+  const h=String(clockHour).padStart(2,'0');
+  const m=String(clockMin).padStart(2,'0');
+  document.getElementById('clock-display').textContent=(clockAmPm==='AM'?'오전':'오후')+' '+h+':'+m;
+}
+function drawClock(){
+  const svg=document.getElementById('clock-face');
+  const cx=120,cy=120,r=92;
+  let html=`<circle cx="120" cy="120" r="110" fill="var(--bg)"/>`;
+  // 중심점
+  html+=`<circle cx="120" cy="120" r="4" fill="var(--teal-d)"/>`;
+  if(clockMode==='hour'){
+    // 1~12시
+    for(let i=1;i<=12;i++){
+      const ang=(i/12)*2*Math.PI - Math.PI/2;
+      const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+      const sel=(i===clockHour);
+      html+=`<g class="clock-num" onclick="pickHour(${i})">
+        <circle class="clock-num-bg${sel?' sel':''}" cx="${x}" cy="${y}" r="18"/>
+        <text class="clock-num-txt${sel?' sel':''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${i}</text>
+      </g>`;
+      if(sel){html+=`<line x1="120" y1="120" x2="${x}" y2="${y}" stroke="var(--teal-d)" stroke-width="2"/>`;}
+    }
+  }else{
+    // 00, 30분만
+    [0,30].forEach(m=>{
+      const ang=(m/60)*2*Math.PI - Math.PI/2;
+      const x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+      const sel=(m===clockMin);
+      html+=`<g class="clock-num" onclick="pickMin(${m})">
+        <circle class="clock-num-bg${sel?' sel':''}" cx="${x}" cy="${y}" r="22"/>
+        <text class="clock-num-txt${sel?' sel':''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${String(m).padStart(2,'0')}</text>
+      </g>`;
+      if(sel){html+=`<line x1="120" y1="120" x2="${x}" y2="${y}" stroke="var(--teal-d)" stroke-width="2"/>`;}
+    });
+  }
+  svg.innerHTML=html;
+  updateClockDisplay();
+}
+window.pickHour=h=>{clockHour=h;drawClock();setTimeout(()=>setClockMode('min'),200);};
+window.pickMin=m=>{clockMin=m;drawClock();};
+window.confirmClock=()=>{
+  let h=clockHour%12;
+  if(clockAmPm==='PM')h+=12;
+  if(clockAmPm==='AM'&&clockHour===12)h=0;
+  const timeStr=String(h).padStart(2,'0')+':'+String(clockMin).padStart(2,'0');
+  dqTimes[clockTarget]=timeStr;
+  const btnId=clockTarget+'-time-btn';
+  const btn=document.getElementById(btnId);
+  if(btn)btn.textContent='⏰ '+(clockAmPm==='AM'?'오전':'오후')+' '+String(clockHour).padStart(2,'0')+':'+String(clockMin).padStart(2,'0');
+  closeClock();
+};
 function renderDaily(){
   const parts=selDate.split('-');
   document.getElementById('daily-date').textContent=parts[0]+'년 '+parseInt(parts[1])+'월 '+parseInt(parts[2])+'일';
   const daily=getAllDaily();
   const dtodos=todos.filter(t=>t.type==='deadline'&&t.start&&t.due&&selDate>=t.start&&selDate<=t.due);
-  const dof=todos.filter(t=>t.type==='dayof'&&t.dayof===selDate);
+  const dof=todos.filter(t=>t.type==='dayof'&&(t.dayof===selDate||(t.dayof&&selDate>=t.dayof&&selDate<=(t.dayofEnd||t.dayof))));
   let html='';
   [...dtodos,...dof].forEach(t=>{
     const cat=catById(t.cat);
@@ -1501,7 +1692,7 @@ function renderBuckets(){
 }
 
 function initApp(){
-  setStartToday();renderCatChips();renderCal();renderDaily();renderNotes();renderTodos();updateTicker();
+  setStartToday();renderCatChips();renderCal();renderDaily();renderNotes();renderTodos();updateTicker();syncQuickAddDates();
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW',e));}
 }
 </script>
