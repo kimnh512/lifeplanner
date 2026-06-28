@@ -204,6 +204,8 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .cal-bar.cont-left{border-top-left-radius:0;border-bottom-left-radius:0;}
 .cal-bar.cont-right{border-top-right-radius:0;border-bottom-right-radius:0;}
 .cal-bar-empty{height:17px;}
+.cal-due-chip{background:#fff;border:1.5px solid;border-radius:4px;font-size:10px;font-weight:600;padding:1px 5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;line-height:1.4;}
+.cal-due-chip.done-chip{opacity:.4;text-decoration:line-through;}
 .cal-day:nth-child(7n){border-right:none;}
 .cal-day:hover{background:var(--teal-bg);}
 .cal-day.other{opacity:.25;}
@@ -1426,16 +1428,13 @@ function renderLegend(){
 // 날짜 칸에 표시할 항목들
 // 일정의 (시작,종료) 범위 구하기 — span 막대용
 function getTodoSpan(t){
-  if(t.type==='deadline'){
-    const s=t.start||t.due, e=t.due;
-    if(!s||!e)return null;
-    return {start:s, end:e, dragType:'due'};
-  } else if(t.type==='dayof'){
+  // 당일 할일만 막대로 (마감 있는 할일은 마감날짜 칩으로 별도 표시, 장기목표 과제는 제외)
+  if(t.type==='dayof'){
     if(!t.dayof)return null;
     const e=(t.dayofEnd&&t.dayofEnd>t.dayof)?t.dayofEnd:t.dayof;
     return {start:t.dayof, end:e, dragType:(e>t.dayof)?null:'dayof'};
   }
-  return null; // 반복은 점/개별 표시
+  return null;
 }
 
 // 캘린더 드래그앤드롭 (날짜 이동)
@@ -1538,9 +1537,15 @@ function renderCal(){
       })();
       // 반복 일정 점
       const repDots=todos.filter(t=>isRepeatActiveOn(t,c.ds)).slice(0,4).map(t=>`<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${catById(t.cat).color};margin-right:2px;"></span>`).join('');
+      // 마감 있는 할일: 마감 날짜에만 흰 배경 + 색 테두리/글씨 칩
+      const dueChips=todos.filter(t=>t.type==='deadline'&&t.due===c.ds).map(t=>{
+        const dc=catById(t.cat).color;
+        return `<div class="cal-due-chip${t.done?' done-chip':''}" style="border-color:${dc};color:${dc};" draggable="true" ondragstart="calDragStart(event,${t.id},'due')" title="${window.esc(t.text)}">${window.esc(t.text)}</div>`;
+      }).join('');
       html+=`<div class="cal-wday${c.other?' other':''}${c.ds===todayS?' today':''}${c.ds===selDate?' sel':''}${achClass}" onclick="selectDay('${c.ds}')" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${c.ds}')">
         <div class="dnum">${c.day}</div>
-        <div style="margin-top:1px;">${repDots}</div>
+        ${repDots?`<div style="margin-top:1px;">${repDots}</div>`:''}
+        ${dueChips}
       </div>`;
     });
     html+='</div>';
