@@ -189,22 +189,23 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .cal-more{font-size:8px;color:var(--text3);font-weight:700;padding:0 2px;}
 /* 주 단위 막대 캘린더 */
 .cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);}
-.cal-week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:0.5px solid var(--sep);}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:auto;border-bottom:0.5px solid var(--sep);position:relative;}
 .cal-week-days{display:contents;}
-.cal-wday{border-right:0.5px solid var(--sep);min-height:24px;padding:3px 2px 0;cursor:pointer;position:relative;}
+.cal-wday{border-right:0.5px solid var(--sep);min-height:88px;padding:4px 2px 0;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;}
 .cal-wday:nth-child(7n){border-right:none;}
 .cal-wday.other{opacity:.3;}
 .cal-wday.today .dnum{background:var(--teal-d);color:#fff;border-radius:50%;}
 .cal-wday.sel{background:var(--teal-bg);}
 .cal-wday.dragover{background:var(--green-bg);outline:2px dashed var(--green-d);outline-offset:-2px;}
-.cal-bars{grid-column:1/8;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:1px 2px 4px;row-gap:2px;}
-.cal-bar{height:17px;border-radius:4px;color:#fff;font-size:10px;font-weight:600;line-height:17px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;}
+.cal-bars{grid-column:1/8;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:16px;column-gap:2px;row-gap:2px;padding:0 2px;position:absolute;top:26px;left:0;right:0;pointer-events:none;}
+.cal-bars > *{pointer-events:auto;}
+.cal-bar{height:16px;border-radius:4px;color:#fff;font-size:10px;font-weight:600;line-height:16px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;}
 .cal-bar.no-drag{cursor:default;}
 .cal-bar.done-bar{opacity:.4;text-decoration:line-through;}
 .cal-bar.cont-left{border-top-left-radius:0;border-bottom-left-radius:0;}
 .cal-bar.cont-right{border-top-right-radius:0;border-bottom-right-radius:0;}
-.cal-bar-empty{height:17px;}
-.cal-due-chip{background:#fff;border:1.5px solid;border-radius:4px;font-size:10px;font-weight:600;padding:1px 5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;line-height:1.4;}
+.cal-bar-empty{height:16px;}
+.cal-due-chip{background:#fff;border:1.3px solid;border-radius:4px;font-size:10px;font-weight:600;padding:0 4px;height:16px;line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;}
 .cal-due-chip.done-chip{opacity:.4;text-decoration:line-through;}
 .cal-day:nth-child(7n){border-right:none;}
 .cal-day:hover{background:var(--teal-bg);}
@@ -1467,108 +1468,119 @@ function renderCal(){
   const todayS=window.todayStr();
   const first=new Date(calYear,calMonth,1), last=new Date(calYear,calMonth+1,0);
   const daysInMonth=last.getDate();
-  const startPad=first.getDay(); // 0=일
+  const startPad=first.getDay();
 
-  // 달력에 표시할 모든 칸(이전달 잔여+이번달+다음달 잔여)을 날짜 문자열 배열로
-  const cells=[]; // {ds, day, other}
+  const cells=[];
   const prevLast=new Date(calYear,calMonth,0).getDate();
-  for(let i=startPad-1;i>=0;i--){
-    const d=prevLast-i;
-    const m=new Date(calYear,calMonth-1,d);
-    cells.push({ds:window.fmt(m), day:d, other:true});
-  }
-  for(let d=1;d<=daysInMonth;d++){
-    cells.push({ds:calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'), day:d, other:false});
-  }
+  for(let i=startPad-1;i>=0;i--){const d=prevLast-i;const m=new Date(calYear,calMonth-1,d);cells.push({ds:window.fmt(m), day:d, other:true});}
+  for(let d=1;d<=daysInMonth;d++){cells.push({ds:calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'), day:d, other:false});}
   const rem=(7-(cells.length%7))%7;
-  for(let i=1;i<=rem;i++){
-    const m=new Date(calYear,calMonth+1,i);
-    cells.push({ds:window.fmt(m), day:i, other:true});
-  }
+  for(let i=1;i<=rem;i++){const m=new Date(calYear,calMonth+1,i);cells.push({ds:window.fmt(m), day:i, other:true});}
 
-  // span 일정들 수집
+  // 연속 당일 할일 → span 막대
   const spans=todos.map(t=>{const sp=getTodoSpan(t);return sp?{...sp, id:t.id, text:t.text, color:catById(t.cat).color, done:t.done}:null;}).filter(Boolean);
 
-  // 주 단위로 끊기
+  const MAX_LANES=3; // 한 주에 보여줄 최대 일정 줄 수 (넘으면 +n)
+
   let html='<div class="cal-dow-row"><div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div></div>';
 
   for(let w=0; w<cells.length; w+=7){
     const week=cells.slice(w, w+7);
     const weekStart=week[0].ds, weekEnd=week[6].ds;
 
-    // 이 주에 걸치는 span들 → 레인 배정
-    const weekSpans=[];
+    // 이 주의 각 칸별 아이템 모으기 (마감칩 + 반복점은 단일 칸 아이템으로 처리)
+    // lane 시스템: 막대는 여러 칸 걸침, 칩/점은 1칸
+    const items=[]; // {startCol,endCol,type,...}
+    // 1) 연속 막대 (당일 할일 연속)
     spans.forEach(sp=>{
-      if(sp.end<weekStart||sp.start>weekEnd)return; // 이 주와 무관
+      if(sp.end<weekStart||sp.start>weekEnd)return;
       const startCol=sp.start<=weekStart?0:week.findIndex(c=>c.ds===sp.start);
       const endCol=sp.end>=weekEnd?6:week.findIndex(c=>c.ds===sp.end);
       if(startCol<0||endCol<0)return;
-      weekSpans.push({...sp, startCol, endCol, contLeft:sp.start<weekStart, contRight:sp.end>weekEnd});
+      // 하루짜리 당일(=칸 1개)도 막대로
+      items.push({kind:'bar', startCol, endCol, contLeft:sp.start<weekStart, contRight:sp.end>weekEnd, ...sp});
     });
-    // 레인 배정 (겹치지 않게)
-    const lanes=[]; // 각 lane은 [endCol...] 배열
-    weekSpans.sort((a,b)=>a.startCol-b.startCol || (b.endCol-b.startCol)-(a.endCol-a.startCol));
-    weekSpans.forEach(sp=>{
+    // 2) 마감 칩 (1칸)
+    week.forEach((c,ci)=>{
+      todos.filter(t=>t.type==='deadline'&&t.due===c.ds).forEach(t=>{
+        items.push({kind:'due', startCol:ci, endCol:ci, id:t.id, text:t.text, color:catById(t.cat).color, done:t.done});
+      });
+    });
+    // 3) 반복 (1칸)
+    week.forEach((c,ci)=>{
+      todos.filter(t=>isRepeatActiveOn(t,c.ds)).forEach(t=>{
+        items.push({kind:'rep', startCol:ci, endCol:ci, id:t.id, text:t.text, color:catById(t.cat).color, done:!!checks[c.ds+'_r'+t.id]});
+      });
+    });
+
+    // 레인 배정 (막대 먼저, 그 다음 칩/점)
+    items.sort((a,b)=>{
+      if(a.kind==='bar'&&b.kind!=='bar')return -1;
+      if(b.kind==='bar'&&a.kind!=='bar')return 1;
+      return a.startCol-b.startCol || (b.endCol-b.startCol)-(a.endCol-a.startCol);
+    });
+    const lanes=[];
+    items.forEach(it=>{
       let lane=0;
       while(true){
         if(!lanes[lane])lanes[lane]=[];
-        const conflict=lanes[lane].some(x=>!(sp.endCol<x.startCol||sp.startCol>x.endCol));
-        if(!conflict){lanes[lane].push(sp);sp.lane=lane;break;}
+        const conflict=lanes[lane].some(x=>!(it.endCol<x.startCol||it.startCol>x.endCol));
+        if(!conflict){lanes[lane].push(it);it.lane=lane;break;}
         lane++;
       }
     });
-    const maxLane=lanes.length;
+
+    // 칸별 초과 개수 계산 (MAX_LANES 넘는 레인의 아이템)
+    const overflowByCol=new Array(7).fill(0);
+    items.forEach(it=>{
+      if(it.lane>=MAX_LANES){
+        for(let c=it.startCol;c<=it.endCol;c++)overflowByCol[c]++;
+      }
+    });
 
     // 주 행 시작
     html+='<div class="cal-week">';
-    // 날짜 숫자 줄
     html+='<div class="cal-week-days">';
-    week.forEach(c=>{
-      const achClass=(()=>{
-        if(c.other)return '';
-        if(c.ds>todayS)return '';
+    week.forEach((c,ci)=>{
+      let achClass='';
+      if(!c.other&&c.ds<=todayS){
         const pct=getDayAchievePct(c.ds);
-        if(pct===null)return '';
-        if(pct===100)return ' ach-full';
-        if(pct>=70)return ' ach-high';
-        if(pct>=30)return ' ach-mid';
-        if(pct>0)return ' ach-low';
-        return '';
-      })();
-      // 반복 일정 점
-      const repDots=todos.filter(t=>isRepeatActiveOn(t,c.ds)).slice(0,4).map(t=>`<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${catById(t.cat).color};margin-right:2px;"></span>`).join('');
-      // 마감 있는 할일: 마감 날짜에만 흰 배경 + 색 테두리/글씨 칩
-      const dueChips=todos.filter(t=>t.type==='deadline'&&t.due===c.ds).map(t=>{
-        const dc=catById(t.cat).color;
-        return `<div class="cal-due-chip${t.done?' done-chip':''}" style="border-color:${dc};color:${dc};" draggable="true" ondragstart="calDragStart(event,${t.id},'due')" title="${window.esc(t.text)}">${window.esc(t.text)}</div>`;
-      }).join('');
+        if(pct!==null){
+          if(pct===100)achClass=' ach-full';
+          else if(pct>=70)achClass=' ach-high';
+          else if(pct>=30)achClass=' ach-mid';
+          else if(pct>0)achClass=' ach-low';
+        }
+      }
+      const moreLabel=overflowByCol[ci]>0?`<div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;color:var(--text3);">+${overflowByCol[ci]}</div>`:'';
       html+=`<div class="cal-wday${c.other?' other':''}${c.ds===todayS?' today':''}${c.ds===selDate?' sel':''}${achClass}" onclick="selectDay('${c.ds}')" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${c.ds}')">
         <div class="dnum">${c.day}</div>
-        ${repDots?`<div style="margin-top:1px;">${repDots}</div>`:''}
-        ${dueChips}
+        ${moreLabel}
       </div>`;
     });
     html+='</div>';
 
-    // 막대 영역 (레인별로 grid row)
-    if(maxLane>0){
-      html+='<div class="cal-bars">';
-      for(let lane=0; lane<maxLane; lane++){
-        const laneSpans=(lanes[lane]||[]).slice().sort((a,b)=>a.startCol-b.startCol);
-        let col=0;
-        laneSpans.forEach(sp=>{
-          // 빈 칸 채우기
-          for(;col<sp.startCol;col++){html+=`<div class="cal-bar-empty" style="grid-column:${col+1}/${col+2};"></div>`;}
-          const showText=!sp.contLeft; // 이어진 막대는 시작 주에만 텍스트
-          const dragAttr=sp.dragType?`draggable="true" ondragstart="calDragStart(event,${sp.id},'${sp.dragType}')"`:'';
-          html+=`<div class="cal-bar${sp.done?' done-bar':''}${sp.dragType?'':' no-drag'}${sp.contLeft?' cont-left':''}${sp.contRight?' cont-right':''}"
-            style="grid-column:${sp.startCol+1}/${sp.endCol+2};background:${sp.color};" ${dragAttr}
-            title="${window.esc(sp.text)}">${showText?window.esc(sp.text):''}</div>`;
-          col=sp.endCol+1;
-        });
-      }
-      html+='</div>';
+    // 막대/칩/점 영역 (MAX_LANES까지만)
+    html+='<div class="cal-bars">';
+    for(let lane=0; lane<MAX_LANES; lane++){
+      const laneItems=(lanes[lane]||[]).slice().sort((a,b)=>a.startCol-b.startCol);
+      let col=0;
+      laneItems.forEach(it=>{
+        for(;col<it.startCol;col++){html+=`<div class="cal-bar-empty" style="grid-column:${col+1}/${col+2};"></div>`;}
+        if(it.kind==='bar'){
+          const showText=!it.contLeft;
+          const dragAttr=it.dragType?`draggable="true" ondragstart="calDragStart(event,${it.id},'${it.dragType}')"`:'';
+          html+=`<div class="cal-bar${it.done?' done-bar':''}${it.dragType?'':' no-drag'}${it.contLeft?' cont-left':''}${it.contRight?' cont-right':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};" ${dragAttr} title="${window.esc(it.text)}">${showText?window.esc(it.text):''}</div>`;
+        } else if(it.kind==='due'){
+          html+=`<div class="cal-due-chip${it.done?' done-chip':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};border-color:${it.color};color:${it.color};" draggable="true" ondragstart="calDragStart(event,${it.id},'due')" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
+        } else {
+          // 반복: 색 점 + 제목
+          html+=`<div class="cal-bar no-drag${it.done?' done-bar':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};opacity:${it.done?0.4:0.85};" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
+        }
+        col=it.endCol+1;
+      });
     }
+    html+='</div>';
     html+='</div>'; // cal-week
   }
 
