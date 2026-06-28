@@ -187,6 +187,23 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .cal-tag.done-tag{opacity:.4;text-decoration:line-through;}
 .cal-tag.no-drag{cursor:default;}
 .cal-more{font-size:8px;color:var(--text3);font-weight:700;padding:0 2px;}
+/* 주 단위 막대 캘린더 */
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:0.5px solid var(--sep);}
+.cal-week-days{display:contents;}
+.cal-wday{border-right:0.5px solid var(--sep);min-height:24px;padding:3px 2px 0;cursor:pointer;position:relative;}
+.cal-wday:nth-child(7n){border-right:none;}
+.cal-wday.other{opacity:.3;}
+.cal-wday.today .dnum{background:var(--teal-d);color:#fff;border-radius:50%;}
+.cal-wday.sel{background:var(--teal-bg);}
+.cal-wday.dragover{background:var(--green-bg);outline:2px dashed var(--green-d);outline-offset:-2px;}
+.cal-bars{grid-column:1/8;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:1px 2px 4px;row-gap:2px;}
+.cal-bar{height:17px;border-radius:4px;color:#fff;font-size:10px;font-weight:600;line-height:17px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;}
+.cal-bar.no-drag{cursor:default;}
+.cal-bar.done-bar{opacity:.4;text-decoration:line-through;}
+.cal-bar.cont-left{border-top-left-radius:0;border-bottom-left-radius:0;}
+.cal-bar.cont-right{border-top-right-radius:0;border-bottom-right-radius:0;}
+.cal-bar-empty{height:17px;}
 .cal-day:nth-child(7n){border-right:none;}
 .cal-day:hover{background:var(--teal-bg);}
 .cal-day.other{opacity:.25;}
@@ -1407,19 +1424,18 @@ function renderLegend(){
     `<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:8px;height:8px;border-radius:50%;background:var(--teal-d);display:inline-block;"></span>반복</span>`;
 }
 // 날짜 칸에 표시할 항목들
-function getTagsForDate(ds){
-  const tags=[];
-  todos.forEach(t=>{
-    const cat=catById(t.cat);
-    if(t.type==='deadline'&&t.due===ds){
-      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:'due'});
-    } else if(t.type==='dayof'&&(t.dayof===ds||(t.dayof&&ds>=t.dayof&&ds<=(t.dayofEnd||t.dayof)))){
-      tags.push({id:t.id,text:t.text,color:cat.color,done:t.done,dragType:(t.dayofEnd&&t.dayofEnd>t.dayof)?null:'dayof'});
-    } else if(isRepeatActiveOn(t,ds)){
-      tags.push({id:t.id,text:t.text,color:cat.color,done:!!checks[ds+'_r'+t.id],dragType:null});
-    }
-  });
-  return tags;
+// 일정의 (시작,종료) 범위 구하기 — span 막대용
+function getTodoSpan(t){
+  if(t.type==='deadline'){
+    const s=t.start||t.due, e=t.due;
+    if(!s||!e)return null;
+    return {start:s, end:e, dragType:'due'};
+  } else if(t.type==='dayof'){
+    if(!t.dayof)return null;
+    const e=(t.dayofEnd&&t.dayofEnd>t.dayof)?t.dayofEnd:t.dayof;
+    return {start:t.dayof, end:e, dragType:(e>t.dayof)?null:'dayof'};
+  }
+  return null; // 반복은 점/개별 표시
 }
 
 // 캘린더 드래그앤드롭 (날짜 이동)
@@ -1443,46 +1459,118 @@ window.calDrop=async(ev,ds)=>{
   }
 };
 
+function dateAddStr(ds,n){
+  const d=window.parseDate(ds);d.setDate(d.getDate()+n);return window.fmt(d);
+}
+
 function renderCal(){
   document.getElementById('cal-title').textContent=calYear+'년 '+(calMonth+1)+'월';
-  const first=new Date(calYear,calMonth,1),last=new Date(calYear,calMonth+1,0),todayS=window.todayStr();
-  let html='<div class="cal-grid">';
-  DOW.forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
-  const prevLast=new Date(calYear,calMonth,0);
-  for(let i=first.getDay()-1;i>=0;i--)html+=`<div class="cal-day other"><div class="dnum">${prevLast.getDate()-i}</div></div>`;
-  for(let d=1;d<=last.getDate();d++){
-    const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const tags=getTagsForDate(ds);
-    const isFuture=ds>todayS;
-    let achClass='';
-    if(!isFuture){
-      const pct=getDayAchievePct(ds);
-      if(pct!==null){
-        if(pct===100) achClass=' ach-full';
-        else if(pct>=70) achClass=' ach-high';
-        else if(pct>=30) achClass=' ach-mid';
-        else if(pct>0) achClass=' ach-low';
-      }
-    }
-    const maxShow=4;
-    const shown=tags.slice(0,maxShow);
-    const more=tags.length-maxShow;
-    html+=`<div class="cal-day${ds===todayS?' today':''}${ds===selDate?' sel':''}${achClass}" onclick="selectDay('${ds}')"
-      ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${ds}')">
-      <div class="dnum">${d}</div>
-      ${shown.map(tag=>`<div class="cal-tag${tag.done?' done-tag':''}${tag.dragType?'':' no-drag'}"
-        style="background:${tag.color};"
-        ${tag.dragType?`draggable="true" ondragstart="calDragStart(event,${tag.id},'${tag.dragType}')"`:''}
-        title="${window.esc(tag.text)}">${window.esc(tag.text)}</div>`).join('')}
-      ${more>0?`<div class="cal-more">+${more}</div>`:''}
-    </div>`;
+  const todayS=window.todayStr();
+  const first=new Date(calYear,calMonth,1), last=new Date(calYear,calMonth+1,0);
+  const daysInMonth=last.getDate();
+  const startPad=first.getDay(); // 0=일
+
+  // 달력에 표시할 모든 칸(이전달 잔여+이번달+다음달 잔여)을 날짜 문자열 배열로
+  const cells=[]; // {ds, day, other}
+  const prevLast=new Date(calYear,calMonth,0).getDate();
+  for(let i=startPad-1;i>=0;i--){
+    const d=prevLast-i;
+    const m=new Date(calYear,calMonth-1,d);
+    cells.push({ds:window.fmt(m), day:d, other:true});
   }
-  const rem=(7-((first.getDay()+last.getDate())%7))%7;
-  for(let i=1;i<=rem;i++)html+=`<div class="cal-day other"><div class="dnum">${i}</div></div>`;
-  html+='</div>';
+  for(let d=1;d<=daysInMonth;d++){
+    cells.push({ds:calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'), day:d, other:false});
+  }
+  const rem=(7-(cells.length%7))%7;
+  for(let i=1;i<=rem;i++){
+    const m=new Date(calYear,calMonth+1,i);
+    cells.push({ds:window.fmt(m), day:i, other:true});
+  }
+
+  // span 일정들 수집
+  const spans=todos.map(t=>{const sp=getTodoSpan(t);return sp?{...sp, id:t.id, text:t.text, color:catById(t.cat).color, done:t.done}:null;}).filter(Boolean);
+
+  // 주 단위로 끊기
+  let html='<div class="cal-dow-row"><div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div></div>';
+
+  for(let w=0; w<cells.length; w+=7){
+    const week=cells.slice(w, w+7);
+    const weekStart=week[0].ds, weekEnd=week[6].ds;
+
+    // 이 주에 걸치는 span들 → 레인 배정
+    const weekSpans=[];
+    spans.forEach(sp=>{
+      if(sp.end<weekStart||sp.start>weekEnd)return; // 이 주와 무관
+      const startCol=sp.start<=weekStart?0:week.findIndex(c=>c.ds===sp.start);
+      const endCol=sp.end>=weekEnd?6:week.findIndex(c=>c.ds===sp.end);
+      if(startCol<0||endCol<0)return;
+      weekSpans.push({...sp, startCol, endCol, contLeft:sp.start<weekStart, contRight:sp.end>weekEnd});
+    });
+    // 레인 배정 (겹치지 않게)
+    const lanes=[]; // 각 lane은 [endCol...] 배열
+    weekSpans.sort((a,b)=>a.startCol-b.startCol || (b.endCol-b.startCol)-(a.endCol-a.startCol));
+    weekSpans.forEach(sp=>{
+      let lane=0;
+      while(true){
+        if(!lanes[lane])lanes[lane]=[];
+        const conflict=lanes[lane].some(x=>!(sp.endCol<x.startCol||sp.startCol>x.endCol));
+        if(!conflict){lanes[lane].push(sp);sp.lane=lane;break;}
+        lane++;
+      }
+    });
+    const maxLane=lanes.length;
+
+    // 주 행 시작
+    html+='<div class="cal-week">';
+    // 날짜 숫자 줄
+    html+='<div class="cal-week-days">';
+    week.forEach(c=>{
+      const achClass=(()=>{
+        if(c.other)return '';
+        if(c.ds>todayS)return '';
+        const pct=getDayAchievePct(c.ds);
+        if(pct===null)return '';
+        if(pct===100)return ' ach-full';
+        if(pct>=70)return ' ach-high';
+        if(pct>=30)return ' ach-mid';
+        if(pct>0)return ' ach-low';
+        return '';
+      })();
+      // 반복 일정 점
+      const repDots=todos.filter(t=>isRepeatActiveOn(t,c.ds)).slice(0,4).map(t=>`<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${catById(t.cat).color};margin-right:2px;"></span>`).join('');
+      html+=`<div class="cal-wday${c.other?' other':''}${c.ds===todayS?' today':''}${c.ds===selDate?' sel':''}${achClass}" onclick="selectDay('${c.ds}')" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${c.ds}')">
+        <div class="dnum">${c.day}</div>
+        <div style="margin-top:1px;">${repDots}</div>
+      </div>`;
+    });
+    html+='</div>';
+
+    // 막대 영역 (레인별로 grid row)
+    if(maxLane>0){
+      html+='<div class="cal-bars">';
+      for(let lane=0; lane<maxLane; lane++){
+        const laneSpans=(lanes[lane]||[]).slice().sort((a,b)=>a.startCol-b.startCol);
+        let col=0;
+        laneSpans.forEach(sp=>{
+          // 빈 칸 채우기
+          for(;col<sp.startCol;col++){html+=`<div class="cal-bar-empty" style="grid-column:${col+1}/${col+2};"></div>`;}
+          const showText=!sp.contLeft; // 이어진 막대는 시작 주에만 텍스트
+          const dragAttr=sp.dragType?`draggable="true" ondragstart="calDragStart(event,${sp.id},'${sp.dragType}')"`:'';
+          html+=`<div class="cal-bar${sp.done?' done-bar':''}${sp.dragType?'':' no-drag'}${sp.contLeft?' cont-left':''}${sp.contRight?' cont-right':''}"
+            style="grid-column:${sp.startCol+1}/${sp.endCol+2};background:${sp.color};" ${dragAttr}
+            title="${window.esc(sp.text)}">${showText?window.esc(sp.text):''}</div>`;
+          col=sp.endCol+1;
+        });
+      }
+      html+='</div>';
+    }
+    html+='</div>'; // cal-week
+  }
+
   document.getElementById('cal-grid').innerHTML=html;
   renderLegend();
 }
+
 window.selectDay=ds=>{selDate=ds;renderCal();renderDaily();syncQuickAddDates();};
 
 // ── 캘린더 빠른 추가 ──
