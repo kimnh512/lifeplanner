@@ -402,7 +402,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 </div>
 
 <div id="app" style="display:none;">
-  <div class="ticker-wrap">
+  <div class="ticker-wrap" id="ticker-wrap" onclick="toggleBucketTicker()" style="cursor:pointer;">
     <span class="ticker-label">BUCKET</span>
     <div class="ticker-dot"></div>
     <div class="ticker-track" id="ticker-track"></div>
@@ -517,6 +517,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="cal-hdr">
         <span class="cal-title" id="cal-title"></span>
         <div style="display:flex;gap:6px;">
+          <button class="nav-btn" id="cal-privacy-btn" onclick="toggleCalTextHidden()">🙈 글씨 숨기기</button>
           <button class="nav-btn" onclick="moveMonth(-1)">&#8249;</button>
           <button class="nav-btn" onclick="moveMonth(1)">&#8250;</button>
         </div>
@@ -678,6 +679,8 @@ let ltOpen={},curType='deadline';
 let calYear,calMonth,selDate;
 const now2=new Date();
 calYear=now2.getFullYear();calMonth=now2.getMonth();selDate=window.fmt(now2);
+let calTextHidden=false,calHiddenIds=new Set();
+let bucketTickerHidden=false;
 
 function initData(){
   unsubscribers.forEach(u=>u());unsubscribers=[];
@@ -1567,15 +1570,20 @@ function renderCal(){
       let col=0;
       laneItems.forEach(it=>{
         for(;col<it.startCol;col++){html+=`<div class="cal-bar-empty" style="grid-column:${col+1}/${col+2};"></div>`;}
+        const itemHidden=calTextHidden&&calHiddenIds.has(it.id);
+        const titleAttr=calTextHidden?'':`title="${window.esc(it.text)}"`;
+        const hideClickAttr=calTextHidden?` onclick="toggleCalItemHidden(${it.id},event)"`:'';
         if(it.kind==='bar'){
-          const showText=!it.contLeft;
+          const showText=!calTextHidden&&!it.contLeft;
           const dragAttr=it.dragType?`draggable="true" ondragstart="calDragStart(event,${it.id},'${it.dragType}')"`:'';
-          html+=`<div class="cal-bar${it.done?' done-bar':''}${it.dragType?'':' no-drag'}${it.contLeft?' cont-left':''}${it.contRight?' cont-right':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};" ${dragAttr} title="${window.esc(it.text)}">${showText?window.esc(it.text):''}</div>`;
+          html+=`<div class="cal-bar${it.done?' done-bar':''}${it.dragType?'':' no-drag'}${it.contLeft?' cont-left':''}${it.contRight?' cont-right':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${itemHidden?'transparent':it.color};" ${dragAttr}${hideClickAttr} ${titleAttr}>${showText?window.esc(it.text):''}</div>`;
         } else if(it.kind==='due'){
-          html+=`<div class="cal-due-chip${it.done?' done-chip':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};border-color:${it.color};color:${it.color};" draggable="true" ondragstart="calDragStart(event,${it.id},'due')" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
+          const showText=!calTextHidden;
+          html+=`<div class="cal-due-chip${it.done?' done-chip':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};border-color:${itemHidden?'transparent':it.color};color:${itemHidden?'transparent':it.color};background:${itemHidden?'transparent':'#fff'};" draggable="true" ondragstart="calDragStart(event,${it.id},'due')"${hideClickAttr} ${titleAttr}>${showText?window.esc(it.text):''}</div>`;
         } else {
           // 반복: 색 점 + 제목
-          html+=`<div class="cal-bar no-drag${it.done?' done-bar':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};opacity:${it.done?0.4:0.85};" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
+          const showText=!calTextHidden;
+          html+=`<div class="cal-bar no-drag${it.done?' done-bar':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${itemHidden?'transparent':it.color};opacity:${it.done?0.4:0.85};"${hideClickAttr} ${titleAttr}>${showText?window.esc(it.text):''}</div>`;
         }
         col=it.endCol+1;
       });
@@ -1589,6 +1597,24 @@ function renderCal(){
 }
 
 window.selectDay=ds=>{selDate=ds;renderCal();renderDaily();syncQuickAddDates();};
+
+window.toggleCalTextHidden=()=>{
+  calTextHidden=!calTextHidden;
+  if(!calTextHidden)calHiddenIds.clear();
+  const btn=document.getElementById('cal-privacy-btn');
+  if(btn)btn.textContent=calTextHidden?'👁️ 글씨 보기':'🙈 글씨 숨기기';
+  renderCal();
+};
+window.toggleCalItemHidden=(id,ev)=>{
+  if(ev)ev.stopPropagation();
+  if(!calTextHidden)return;
+  if(calHiddenIds.has(id))calHiddenIds.delete(id);else calHiddenIds.add(id);
+  renderCal();
+};
+window.toggleBucketTicker=()=>{
+  bucketTickerHidden=!bucketTickerHidden;
+  document.getElementById('ticker-track').style.visibility=bucketTickerHidden?'hidden':'visible';
+};
 
 // ── 캘린더 빠른 추가 ──
 let dqType='dayof';
