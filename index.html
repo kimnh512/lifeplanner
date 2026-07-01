@@ -517,7 +517,7 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="cal-hdr">
         <span class="cal-title" id="cal-title"></span>
         <div style="display:flex;gap:6px;">
-          <button class="nav-btn" id="cal-privacy-btn" onclick="toggleCalTextHidden()">🙈 글씨 숨기기</button>
+          <button class="nav-btn" id="cal-privacy-btn" onclick="toggleCalTextHidden()">privacy</button>
           <button class="nav-btn" onclick="moveMonth(-1)">&#8249;</button>
           <button class="nav-btn" onclick="moveMonth(1)">&#8250;</button>
         </div>
@@ -1602,7 +1602,7 @@ window.toggleCalTextHidden=()=>{
   calTextHidden=!calTextHidden;
   if(!calTextHidden)calHiddenIds.clear();
   const btn=document.getElementById('cal-privacy-btn');
-  if(btn)btn.textContent=calTextHidden?'👁️ 글씨 보기':'🙈 글씨 숨기기';
+  if(btn)btn.textContent=calTextHidden?'open':'privacy';
   renderCal();
 };
 window.toggleCalItemHidden=(id,ev)=>{
