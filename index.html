@@ -179,8 +179,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
 .cal-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:0.5px solid var(--sep);}
 .cal-title{font-size:15px;font-weight:700;color:var(--text);}
 .nav-btn{background:var(--bg);border:none;border-radius:7px;padding:4px 12px;font-family:'Pretendard',sans-serif;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;}
-.share-btn{font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;border:1.5px solid var(--bdr);background:transparent;color:var(--text2);cursor:pointer;}
-.share-btn.share-on{background:var(--teal-d);border-color:var(--teal-d);color:#fff;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);width:100%;}
 .cal-dow{background:var(--bg);text-align:center;font-size:11px;font-weight:700;color:var(--text3);padding:5px 0;border-bottom:0.5px solid var(--sep);}
 .cal-day{border-bottom:0.5px solid var(--sep);border-right:0.5px solid var(--sep);padding:3px 2px;cursor:pointer;min-height:92px;transition:background .12s;overflow:hidden;display:flex;flex-direction:column;}
@@ -519,7 +517,6 @@ body,#app{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg)
       <div class="cal-hdr">
         <span class="cal-title" id="cal-title"></span>
         <div style="display:flex;gap:6px;">
-          <button class="share-btn" id="cal-share-btn" onclick="toggleShareMode()" title="공유용: 캘린더의 할 일 글씨를 숨겨요">글씨 숨김</button>
           <button class="nav-btn" onclick="moveMonth(-1)">&#8249;</button>
           <button class="nav-btn" onclick="moveMonth(1)">&#8250;</button>
         </div>
@@ -1029,16 +1026,6 @@ function renderTodos(){
     if(rdone)return;
     const cat=catById(t.cat);
     const dowNamesT=['일','월','화','수','목','금','토'];
-    let calShareMode=false;
-window.toggleShareMode=()=>{
-  calShareMode=!calShareMode;
-  const btn=document.getElementById('cal-share-btn');
-  if(btn){
-    btn.classList.toggle('share-on',calShareMode);
-    btn.textContent=calShareMode?'글씨 보기':'글씨 숨김';
-  }
-  renderCal();
-};
     const freqLabel=t.freq==='daily'?'매일':t.freq==='weekly'?'매주':t.freq==='monthly'?'매월':(t.dows||[]).map(d=>dowNamesT[d]).join('');
     todayHtml+=`<div class="g-row">
       <div class="cat-bar" style="background:${cat.color}"></div>
@@ -1581,14 +1568,14 @@ function renderCal(){
       laneItems.forEach(it=>{
         for(;col<it.startCol;col++){html+=`<div class="cal-bar-empty" style="grid-column:${col+1}/${col+2};"></div>`;}
         if(it.kind==='bar'){
-          const showText=!it.contLeft && !calShareMode;
+          const showText=!it.contLeft;
           const dragAttr=it.dragType?`draggable="true" ondragstart="calDragStart(event,${it.id},'${it.dragType}')"`:'';
-          html+=`<div class="cal-bar${it.done?' done-bar':''}${it.dragType?'':' no-drag'}${it.contLeft?' cont-left':''}${it.contRight?' cont-right':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};" ${dragAttr} title="${calShareMode?'':window.esc(it.text)}">${showText?window.esc(it.text):''}</div>`;
+          html+=`<div class="cal-bar${it.done?' done-bar':''}${it.dragType?'':' no-drag'}${it.contLeft?' cont-left':''}${it.contRight?' cont-right':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};" ${dragAttr} title="${window.esc(it.text)}">${showText?window.esc(it.text):''}</div>`;
         } else if(it.kind==='due'){
-          html+=`<div class="cal-due-chip${it.done?' done-chip':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};border-color:${it.color};color:${it.color};" draggable="true" ondragstart="calDragStart(event,${it.id},'due')" title="${calShareMode?'':window.esc(it.text)}">${calShareMode?'':window.esc(it.text)}</div>`;
+          html+=`<div class="cal-due-chip${it.done?' done-chip':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};border-color:${it.color};color:${it.color};" draggable="true" ondragstart="calDragStart(event,${it.id},'due')" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
         } else {
           // 반복: 색 점 + 제목
-          html+=`<div class="cal-bar no-drag${it.done?' done-bar':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};opacity:${it.done?0.4:0.85};" title="${calShareMode?'':window.esc(it.text)}">${calShareMode?'':window.esc(it.text)}</div>`;
+          html+=`<div class="cal-bar no-drag${it.done?' done-bar':''}" style="grid-column:${it.startCol+1}/${it.endCol+2};background:${it.color};opacity:${it.done?0.4:0.85};" title="${window.esc(it.text)}">${window.esc(it.text)}</div>`;
         }
         col=it.endCol+1;
       });
